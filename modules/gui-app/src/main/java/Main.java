@@ -32,6 +32,9 @@ public class Main implements Runnable{
     @CommandLine.Option(names={"-g", "--fraction"},
             description="Maximum allowable fraction of ambiguities allowed for 'resolve' mode. If exceeded, use 'average' mode.")
     private float max_ambiguity_fraction;
+    @CommandLine.Option(names={"-c", "--cores"},
+            description="Number of cores to use for parallel processing.", defaultValue = "1")
+    private int cores;
 
     public void run() {
         if(is_server) {
@@ -56,6 +59,7 @@ public class Main implements Runnable{
             System.out.println(ambiguityHandling);
             tn93.setAmbiguityHandling(ambiguityHandling);
             tn93.setMaxAmbiguityFraction(max_ambiguity_fraction);
+            tn93.setCores(cores);
             tn93.tn93Fasta();
         }
     }
@@ -83,7 +87,7 @@ public class Main implements Runnable{
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         //Create and set up the content pane.
-        TN93_Panel panel = new TN93_Panel();
+        TN93_Panel panel = new TN93_Panel(frame);
         mainPane.add(panel);
         panel.setOpaque(true); //content panes must be opaque
         frame.setContentPane(mainPane);
@@ -101,15 +105,18 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
     private JProgressBar progress;
     private ButtonGroup ambiguityHandlingGroup;
     private JRadioButton resolveBut, averageBut, gapmmBut, skipBut;
-    private String ambiguityHandling;
     private JTextField maxAmbiguityFractionField;
     private JLabel maxAmbiguityFractionLabel;
+    private JCheckBox useMaxCoresCheckbox;
+    private JTextField numCoresField;
 
     private File fastaFile, edgeListFile;
     private TN93 tn93;
+    private JFrame frame;
 
 
-    TN93_Panel() {
+    TN93_Panel(JFrame frame) {
+        this.frame = frame;
         tn93 = new TN93();
         tn93.addObserver(this);
 
@@ -122,6 +129,7 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         averageBut = new JRadioButton("Average");
         gapmmBut = new JRadioButton("Gapmm");
         skipBut = new JRadioButton("Skip");
+
 
         ambiguityHandlingGroup.add(resolveBut);
         ambiguityHandlingGroup.add(averageBut);
@@ -158,80 +166,109 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         fastaPanel.add(runBut);
         add(fastaPanel, BorderLayout.NORTH);
 
-        JPanel ambigsPanel = new JPanel();        
-        ambigsPanel.setLayout(new GridLayout(1, 4));
-        ambigsPanel.add(resolveBut);
-        ambigsPanel.add(averageBut);
-        ambigsPanel.add(gapmmBut);
-        ambigsPanel.add(skipBut);
-
+        JPanel ambigsPanel = new JPanel();   
+        ambigsPanel.setLayout(new GridLayout(2, 1));
         ambigsPanel.setBorder(BorderFactory.createTitledBorder("Ambiguity Handling"));
-        add(ambigsPanel, BorderLayout.CENTER);
+
+        JPanel radioButtonsPanel = new JPanel();
+        radioButtonsPanel.setLayout(new GridLayout(1, 4));
+        resolveBut.setToolTipText("Count any resolutions that match as a perfect match");
+        averageBut.setToolTipText("Average all possible resolutions");
+        gapmmBut.setToolTipText("Count character-gap sites as 4-way mismatches, otherwise Average.");
+        skipBut.setToolTipText("Skip all sites with gaps or ambiguities");
+        radioButtonsPanel.add(resolveBut);
+        radioButtonsPanel.add(averageBut);
+        radioButtonsPanel.add(gapmmBut);
+        radioButtonsPanel.add(skipBut);
+        ambigsPanel.add(radioButtonsPanel, BorderLayout.NORTH);
 
         JPanel maxAmbigsPanel = new JPanel();
         maxAmbigsPanel.setLayout(new GridLayout(1, 2));
-        maxAmbiguityFractionLabel = new JLabel("Maximum fraction of ambiguities to resolve:", JLabel.RIGHT);
+        maxAmbiguityFractionLabel = new JLabel("Maximum ambiguity fraction: ", JLabel.CENTER);
         maxAmbigsPanel.add(maxAmbiguityFractionLabel);
         maxAmbiguityFractionField = new JTextField("0.05");
-        maxAmbigsPanel.add(maxAmbiguityFractionField);
-        add(maxAmbigsPanel, BorderLayout.SOUTH);
+        maxAmbigsPanel.add(maxAmbiguityFractionField, BorderLayout.SOUTH);
         
+        ambigsPanel.add(maxAmbigsPanel);
+        add(ambigsPanel, BorderLayout.CENTER);
+
         resolveBut.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                maxAmbiguityFractionField.setEnabled(true);
-                maxAmbiguityFractionField.setVisible(true);
-                maxAmbiguityFractionLabel.setEnabled(true);
-                maxAmbiguityFractionLabel.setVisible(true);
+                ambigsPanel.add(maxAmbigsPanel);
+                ambigsPanel.setLayout(new GridLayout(2, 1));
+                ambigsPanel.revalidate();
+                ambigsPanel.repaint();
+                frame.pack();
             }
         });
 
-        averageBut.addActionListener(new ActionListener() {
+        ActionListener hideMaxAmbiguityListener = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                maxAmbiguityFractionField.setEnabled(false);
-                maxAmbiguityFractionField.setVisible(false);
-                maxAmbiguityFractionLabel.setEnabled(false);
-                maxAmbiguityFractionLabel.setVisible(false);
+                ambigsPanel.remove(maxAmbigsPanel);
+                ambigsPanel.setLayout(new GridLayout(1, 1));
+                ambigsPanel.revalidate();
+                ambigsPanel.repaint();
+                frame.pack();
+            }
+        };
+
+        averageBut.addActionListener(hideMaxAmbiguityListener);
+        gapmmBut.addActionListener(hideMaxAmbiguityListener);
+        skipBut.addActionListener(hideMaxAmbiguityListener);
+
+        JPanel coresPanel = new JPanel();
+        coresPanel.setLayout(new GridLayout(1, 2));
+        useMaxCoresCheckbox = new JCheckBox("Use all available cores", true);
+        numCoresField = new JTextField(Integer.toString(Runtime.getRuntime().availableProcessors()));
+        numCoresField.setEnabled(false);
+
+        useMaxCoresCheckbox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (useMaxCoresCheckbox.isSelected()) {
+                    numCoresField.setEnabled(false);
+                    numCoresField.setText(Integer.toString(Runtime.getRuntime().availableProcessors()));
+                } else {
+                    numCoresField.setEnabled(true);
+                }
             }
         });
 
-        gapmmBut.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                maxAmbiguityFractionField.setEnabled(false);
-                maxAmbiguityFractionField.setVisible(false);
-                maxAmbiguityFractionLabel.setEnabled(false);
-                maxAmbiguityFractionLabel.setVisible(false);
-            }
-        });
+        coresPanel.add(new JLabel("Number of cores to use:", JLabel.CENTER));
+        coresPanel.add(numCoresField);
+        coresPanel.add(useMaxCoresCheckbox);
 
-        skipBut.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                maxAmbiguityFractionField.setEnabled(false);
-                maxAmbiguityFractionField.setVisible(false);
-                maxAmbiguityFractionLabel.setEnabled(false);
-                maxAmbiguityFractionLabel.setVisible(false);
-            }
-        });
+        coresPanel.setBorder(BorderFactory.createTitledBorder("Processing"));
+        add(coresPanel, BorderLayout.SOUTH);
     }
 
     public void actionPerformed(ActionEvent e) {
         if("loadFasta".equals(e.getActionCommand())) {
-            JFileChooser fileopen =  new JFileChooser();
-            FileNameExtensionFilter filter = new FileNameExtensionFilter("FASTA FILES", "fa", "fas", "fasta");
-            fileopen.addChoosableFileFilter(filter);
-            if(JFileChooser.APPROVE_OPTION == fileopen.showDialog(null, "Open Fasta file")) {
-                fastaFile = fileopen.getSelectedFile();
+            FileDialog fileDialog = new FileDialog(new Frame(), "Open Fasta file", FileDialog.LOAD);
+            fileDialog.setFilenameFilter((dir, name) -> name.endsWith(".fa") || name.endsWith(".fas") || name.endsWith(".fasta"));
+            fileDialog.setVisible(true);
+        
+            String selectedFileDirectory = fileDialog.getDirectory();
+            String selectedFileName = fileDialog.getFile();
+        
+            if (selectedFileDirectory != null && selectedFileName != null) {
+                fastaFile = new File(selectedFileDirectory, selectedFileName);
                 fastaTextField.setText(fastaFile.getName());
             }
         }
-        else if("specifyEdgeListFile".equals(e.getActionCommand())) {
-            JFileChooser fileopen =  new JFileChooser();
-            //fileopen.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            if(JFileChooser.APPROVE_OPTION == fileopen.showDialog(null, "Save as: Edge List CSV File")) {
-                edgeListFile = fileopen.getSelectedFile();
+        
+        else if ("specifyEdgeListFile".equals(e.getActionCommand())) {
+            FileDialog fileDialog = new FileDialog(new Frame(), "Save as: Edge List CSV File", FileDialog.SAVE);
+            fileDialog.setFilenameFilter((dir, name) -> name.endsWith(".csv"));
+            fileDialog.setVisible(true);
+        
+            String selectedFileDirectory = fileDialog.getDirectory();
+            String selectedFileName = fileDialog.getFile();
+        
+            if (selectedFileDirectory != null && selectedFileName != null) {
+                edgeListFile = new File(selectedFileDirectory, selectedFileName);
                 edgeListTextField.setText(edgeListFile.getName());
             }
         }
@@ -263,6 +300,16 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
                 tn93.setAmbiguityHandling("skip");
             else 
                 tn93.setAmbiguityHandling("resolve");
+
+            if(useMaxCoresCheckbox.isSelected()) {
+                tn93.setCores(Runtime.getRuntime().availableProcessors());
+            } else {
+                try {
+                    tn93.setCores(Integer.parseInt(numCoresField.getText()));
+                } catch (NumberFormatException ex) {
+                    showMessageDialog(null, "Number of cores should be number!");
+                }
+            }
         
             SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
                 @Override

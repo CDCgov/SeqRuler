@@ -34,3 +34,15 @@ jetty/
 #build folder
 target/
 
+
+*.csv
+
+!test-data/
+
+*.fasta
+
+*.out
+
+.vscode/
+cdc_python_tn93/
+

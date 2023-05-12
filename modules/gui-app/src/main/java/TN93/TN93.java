@@ -2,19 +2,39 @@ package TN93;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.Observable;
+
+//Parallelization
+import java.util.concurrent.*;
+
 
 import static java.lang.Math.log;
 
 public class TN93 extends Observable {
-    // private static final double TN_93_MAX_DIST = 1000.;
+    // Used for parallelization
+    private static class Triplet<A, B, C> {
+        final A first;
+        final B second;
+        final C third;
+    
+        public Triplet(A first, B second, C third) {
+            this.first = first;
+            this.second = second;
+            this.third = third;
+        }
+    }
+
+
     private float edgeThreshold = 1;
     private File inputFile;
     private File outputFile;
     private String ambiguityHandling;
+    private int cores = 1;
     private double max_ambiguity_fraction = -1; // -1 means no limit (default)
     private Map<Seq, Double> ambig_fractions = new HashMap<>();
 
@@ -36,6 +56,10 @@ public class TN93 extends Observable {
 
     public void setMaxAmbiguityFraction(double max_ambiguity_fraction) {
         this.max_ambiguity_fraction = max_ambiguity_fraction;
+    }
+
+    public void setCores(int cores) {
+        this.cores = cores;
     }
 
     final static int[][] resolutions = {
@@ -84,16 +108,10 @@ public class TN93 extends Observable {
     public void tn93Fasta() {
         PrintWriter f = null;
         try {
-            LinkedList<Seq> seqs = read_fasta(inputFile);
-            double[][] dist = tn93(seqs);
-            f = new PrintWriter(outputFile);
-            f.println("Source,Target,Dist");
-            for (int i = 1; i < dist.length; ++i) {
-                for (int j = 0; j < i; ++j) {
-                    if (dist[i][j] <= edgeThreshold) f.println(
-                            String.format("%s,%s,%f", seqs.get(i).getName(), seqs.get(j).getName(), dist[i][j]));
-                }
-            }
+            System.out.println("Reading input file...");
+            ArrayList<Seq> seqs = read_fasta(inputFile);
+            System.out.println("Calculating distances...");
+            tn93(seqs);
         }
         catch(FileNotFoundException e) {
             e.printStackTrace();
@@ -103,35 +121,103 @@ public class TN93 extends Observable {
         }
     }
 
-    public double[][] tn93(LinkedList<Seq> seqs) {
+    public void tn93(ArrayList<Seq> seqs){
         if ("resolve".equals(ambiguityHandling)) {
             ambig_fractions = count_ambiguities(seqs);
         }
-        double[][] dist = new double[seqs.size()][seqs.size()];
+
+        if (cores >= seqs.size()) {
+            cores = seqs.size()-1;
+        }
+
+        System.out.println("Creating thread pool with " + cores + " threads...");
+        ExecutorService executor = Executors.newFixedThreadPool(cores);
+        List<Future<Triplet<Integer, Integer, Double>>> futures = new ArrayList<>();
+        AtomicReference<PrintWriter> writerRef = new AtomicReference<>();
+        try {
+            writerRef.set(new PrintWriter(outputFile));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        writerRef.get().println("Source,Target,Distance");
+
+
+        long pairs_count = (seqs.size() * seqs.size() - seqs.size())/2;
+        long current_pair = 0;
         long startTime = System.nanoTime(), estimatedTime;
-        int pairs_count = (dist.length * dist.length - dist.length)/2;
-        int current_pair = 0;
-        for (int i = 1; i < dist.length; ++i) {
-            for (int j = 0; j < i; ++j) {
-                current_pair++;
-                if(current_pair % (pairs_count/100) == 0) {
-                    estimatedTime = System.nanoTime() - startTime;
-                    int percCompleted = current_pair*100/pairs_count;
-                    System.out.print(String.format("%d%% completed for ", percCompleted));
-                    System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                    System.out.println(" sec");
-                    setChanged();
-                    notifyObservers(percCompleted);
+
+        System.out.println("Submitting jobs...");
+        for (int i = 1; i < seqs.size(); ++i) {
+            System.out.print("Processing " + i + " of " + seqs.size() + " sequences...\r");
+            for (int j = 0; j < i; ++ j) {
+                final int row = i;
+                final int col = j;
+                final Seq seq1 = seqs.get(row);
+                final Seq seq2 = seqs.get(col);
+                
+                futures.add(executor.submit( () -> {
+                    double d = tn93(seq1, seq2);
+                    if (d < this.edgeThreshold)
+                        writerRef.get().println(String.format("%s,%s,%f", seq1.getName(), seq2.getName(), d));
+                    return new Triplet<>(row, col, d);
+                }));
+
+                if (futures.size() > 1000 || pairs_count < 1000 ) {
+                    for (Future<Triplet<Integer, Integer, Double>> future : futures) {
+                        try {
+                            future.get();         
+                        }
+                        catch (InterruptedException | ExecutionException e) {
+                            e.printStackTrace();
+                        }
+        
+                        current_pair++;
+                        // There is some issue here when input has exactly 2 sequences
+                        if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0 ) {
+                            estimatedTime = System.nanoTime() - startTime;
+                            int percCompleted = (int) (current_pair*100/pairs_count);
+                            System.out.print(String.format("%d%% completed in ", percCompleted));
+                            System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+                            System.out.println(" sec                                ");
+                            setChanged();
+                            notifyObservers(percCompleted);
+                        } 
+                    }
+                    futures.clear();
                 }
-                dist[i][j] = dist[j][i] = tn93(seqs.get(i), seqs.get(j));
             }
         }
+
+        for (Future<Triplet<Integer, Integer, Double>> future : futures) {
+            try {
+                future.get();         
+            }
+            catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+
+            current_pair++;
+            if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
+                estimatedTime = System.nanoTime() - startTime;
+                int percCompleted = (int) (current_pair*100/pairs_count);
+                System.out.print(String.format("%d%% completed in ", percCompleted));
+                System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+                System.out.println(" sec                                ");
+                setChanged();
+                notifyObservers(percCompleted);
+            } 
+        }
+
+        executor.shutdown();
+        writerRef.get().flush();
+        writerRef.get().close();
         setChanged();
         notifyObservers(100);
-        return dist;
+        return;
     }
 
-    private HashMap<Seq,Double> count_ambiguities(LinkedList<Seq> seqs) {
+    private HashMap<Seq,Double> count_ambiguities(ArrayList<Seq> seqs) {
         HashMap<Seq,Double> ambig_fractions = new HashMap<>();
         int seq_length = seqs.get(0).getSeq_enc().length;
         for (Seq seq : seqs) {
@@ -421,8 +507,8 @@ public class TN93 extends Observable {
     }
 
 
-    public static LinkedList<Seq> read_seqs(Scanner sc) {
-        LinkedList<Seq> seqs = new LinkedList<Seq>();
+    public static ArrayList<Seq> read_seqs(Scanner sc) {
+        ArrayList<Seq> seqs = new ArrayList<Seq>();
         String name="", seq="";
         while(sc.hasNextLine()) {
             String line = sc.nextLine().trim();
@@ -439,9 +525,9 @@ public class TN93 extends Observable {
     }
 
 
-    private static LinkedList<Seq> read_fasta(File inputFile) throws FileNotFoundException {
+    private static ArrayList<Seq> read_fasta(File inputFile) throws FileNotFoundException {
         Scanner sc = new Scanner(inputFile);
-        LinkedList<Seq> a = read_seqs(sc);
+        ArrayList<Seq> a = read_seqs(sc);
         sc.close();
         return a;
     }
