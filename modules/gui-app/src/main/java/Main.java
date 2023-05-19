@@ -1,4 +1,5 @@
 import TN93.TN93;
+import SNP.SNP;
 import picocli.CommandLine;
 
 import javax.swing.*;
@@ -21,16 +22,19 @@ public class Main implements Runnable{
             description="output file with distances",
             paramLabel = "FILE")
     private File outputFile;
-    @CommandLine.Option(names={"-s", "--server"}, description="run jetty server")
+    @CommandLine.Option(names={"-d", "--distance-method"},
+            description="distance metric to use. One of [TN93, SNP]. Default: TN93", defaultValue = "TN93")
+    private String distanceMethod;
+    @CommandLine.Option(names={"-s", "--server"}, description="run jetty server", defaultValue = "false")
     private boolean is_server;
     @CommandLine.Option(names={"-t", "--edge-threshold"},
-            description="edges above the threshold are not reported in output")
+            description="edges above the threshold are not reported in output", defaultValue = "1.0")
     private String edgeThresholdString;
     @CommandLine.Option(names={"-a", "--ambiguity", "--ambiguities"},
-            description="How to handle ambiguous nucleotides. One of [resolve, average, gapmm, skip]")
+            description="How to handle ambiguous nucleotides. One of [resolve, average, gapmm, skip]", defaultValue = "resolve")
     private String ambiguityHandling;
     @CommandLine.Option(names={"-g", "--fraction"},
-            description="Maximum allowable fraction of ambiguities allowed for 'resolve' mode. If exceeded, use 'average' mode.")
+            description="Maximum allowable fraction of ambiguities allowed for 'resolve' mode. If exceeded, use 'average' mode.", defaultValue = "1.0")
     private float max_ambiguity_fraction;
     @CommandLine.Option(names={"-c", "--cores"},
             description="Number of cores to use for parallel processing.", defaultValue = "1")
@@ -52,15 +56,27 @@ public class Main implements Runnable{
             });
         }
         else {
-            TN93 tn93 = new TN93();
-            tn93.setEdgeThreshold(Float.parseFloat(edgeThresholdString));
-            tn93.setInputFile(inputFile);
-            tn93.setOutputFile(outputFile);
-            System.out.println(ambiguityHandling);
-            tn93.setAmbiguityHandling(ambiguityHandling);
-            tn93.setMaxAmbiguityFraction(max_ambiguity_fraction);
-            tn93.setCores(cores);
-            tn93.tn93Fasta();
+            if(distanceMethod == null) distanceMethod = "TN93";
+            distanceMethod = distanceMethod.toUpperCase();
+            if("TN93".equals(distanceMethod)) {
+                TN93 tn93 = new TN93();
+                tn93.setEdgeThreshold(Float.parseFloat(edgeThresholdString));
+                tn93.setInputFile(inputFile);
+                tn93.setOutputFile(outputFile);
+                System.out.println(ambiguityHandling);
+                tn93.setAmbiguityHandling(ambiguityHandling);
+                tn93.setMaxAmbiguityFraction(max_ambiguity_fraction);
+                tn93.setCores(cores);
+                tn93.tn93Fasta();
+            }
+            else if("SNP".equals(distanceMethod)) {
+                SNP snp = new SNP();
+                snp.setInputFile(inputFile);
+                snp.setOutputFile(outputFile);
+                snp.setEdgeThreshold(Float.parseFloat(edgeThresholdString));
+                snp.setCores(cores);
+                snp.snpFasta();
+            }
         }
     }
     private static void run_server() throws InterruptedException {
@@ -81,7 +97,7 @@ public class Main implements Runnable{
 
     private static void createAndShowGUI() {
         //Create and set up the window.
-        JFrame frame = new JFrame("TN93");
+        JFrame frame = new JFrame("SeqRuler");
         JPanel mainPane = new JPanel();
         mainPane.setLayout(new BoxLayout(mainPane, BoxLayout.Y_AXIS));
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -100,9 +116,11 @@ public class Main implements Runnable{
 
 class TN93_Panel extends JPanel implements ActionListener, Observer {
     private float edgeThreshold;
+    private JButton tn93ModeBut, snpModeBut;
     private JButton inBut, outBut, runBut;
     private JTextField fastaTextField, edgeListTextField, edgeThresholdField;
     private JProgressBar progress;
+    private ButtonGroup modeGroup;
     private ButtonGroup ambiguityHandlingGroup;
     private JRadioButton resolveBut, averageBut, gapmmBut, skipBut;
     private JTextField maxAmbiguityFractionField;
@@ -110,8 +128,10 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
     private JCheckBox useMaxCoresCheckbox;
     private JTextField numCoresField;
 
+
     private File fastaFile, edgeListFile;
     private TN93 tn93;
+    private SNP snp;
     private JFrame frame;
 
 
@@ -119,6 +139,16 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         this.frame = frame;
         tn93 = new TN93();
         tn93.addObserver(this);
+        snp = new SNP();
+        snp.addObserver(this);
+
+        modeGroup = new ButtonGroup();
+        tn93ModeBut = new JButton("TN93 Distance");
+        snpModeBut = new JButton("SNP Distance");
+        modeGroup.add(tn93ModeBut);
+        modeGroup.add(snpModeBut);
+        tn93ModeBut.setSelected(true);
+
 
         inBut = new JButton("Load Fasta");
         outBut = new JButton("Save as: Edge List CSV File");
@@ -155,7 +185,9 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         setLayout(new BorderLayout());
 
         JPanel fastaPanel = new JPanel();
-        fastaPanel.setLayout(new GridLayout(4, 2));
+        fastaPanel.setLayout(new GridLayout(5, 2));
+        fastaPanel.add(tn93ModeBut);
+        fastaPanel.add(snpModeBut);
         fastaPanel.add(new JLabel("Maximum edge length:", JLabel.RIGHT));
         fastaPanel.add(edgeThresholdField);
         fastaPanel.add(fastaTextField);
@@ -165,6 +197,7 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         fastaPanel.add(progress);
         fastaPanel.add(runBut);
         add(fastaPanel, BorderLayout.NORTH);
+
 
         JPanel ambigsPanel = new JPanel();   
         ambigsPanel.setLayout(new GridLayout(2, 1));
@@ -217,6 +250,39 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         averageBut.addActionListener(hideMaxAmbiguityListener);
         gapmmBut.addActionListener(hideMaxAmbiguityListener);
         skipBut.addActionListener(hideMaxAmbiguityListener);
+
+
+        tn93ModeBut.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                add(ambigsPanel, BorderLayout.CENTER);
+                runBut.setText("Run TN93");
+                runBut.setActionCommand("runTN93");
+                snpModeBut.setSelected(false);
+                revalidate();
+                repaint();
+                frame.pack();
+
+            }
+        });
+
+        snpModeBut.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // When SNP but is pressed, hide the ambiguities panel. 
+                // and change runbut text to Run SNP
+                remove(ambigsPanel);
+                runBut.setText("Run SNP");
+                runBut.setActionCommand("runSNP");
+                tn93ModeBut.setSelected(false);
+                revalidate();
+                repaint();
+                frame.pack();
+            }
+        });
+
+
+
 
         JPanel coresPanel = new JPanel();
         coresPanel.setLayout(new GridLayout(1, 2));
@@ -315,6 +381,46 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
                 @Override
                 protected Void doInBackground() {
                     tn93.tn93Fasta();
+                    return null;
+                }
+                @Override
+                protected void done() {
+                    activatePanel();
+                }
+            };
+            worker.execute();
+        }
+        else if("runSNP".equals(e.getActionCommand())) {
+            if(fastaFile == null) {
+                showMessageDialog(null, "Specify an input Fasta file!");
+                return;
+            }
+            if(edgeListFile == null) {
+                showMessageDialog(null, "Specify an output file using Save as!");
+                return;
+            }
+            if(!parseEdgeThreshold()) {
+                showMessageDialog(null, "Threshold should be number!");
+            }
+            inactivatePanel();
+            snp.setInputFile(fastaFile);
+            snp.setOutputFile(edgeListFile);
+            snp.setEdgeThreshold(edgeThreshold);
+
+            if(useMaxCoresCheckbox.isSelected()) {
+                snp.setCores(Runtime.getRuntime().availableProcessors());
+            } else {
+                try {
+                    snp.setCores(Integer.parseInt(numCoresField.getText()));
+                } catch (NumberFormatException ex) {
+                    showMessageDialog(null, "Number of cores should be number!");
+                }
+            }
+
+            SwingWorker<Void,Void> worker = new SwingWorker<Void,Void>() {
+                @Override
+                protected Void doInBackground() {
+                    snp.snpFasta();
                     return null;
                 }
                 @Override
