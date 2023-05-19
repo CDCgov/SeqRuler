@@ -153,7 +153,9 @@ public class SNP extends Observable {
         String seq1 = s1.getSeq();
         String seq2 = s2.getSeq();
         for (int i = 0; i < seq1.length(); ++i) {
-            if (seq1.charAt(i) != seq2.charAt(i)) ++d;
+            if (seq1.charAt(i) != seq2.charAt(i) && seq1.charAt(i) != '-' && seq2.charAt(i) != '-') {
+                ++d;
+            }
         }
         return d;
     }
