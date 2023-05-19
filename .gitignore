@@ -46,3 +46,4 @@ target/
 .vscode/
 cdc_python_tn93/
 
+!SeqRuler.jar
