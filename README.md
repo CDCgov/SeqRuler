@@ -16,7 +16,7 @@ mvn clean install
 ## Running
 
 ```bash
-java -jar tn93.jar
+java -jar SeqRuler.jar
 ```
 
 ## Help
