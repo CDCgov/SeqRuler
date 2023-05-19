@@ -33,12 +33,18 @@ public class Main implements Runnable{
     @CommandLine.Option(names={"-a", "--ambiguity", "--ambiguities"},
             description="How to handle ambiguous nucleotides. One of [resolve, average, gapmm, skip]", defaultValue = "resolve")
     private String ambiguityHandling;
-    @CommandLine.Option(names={"-g", "--fraction"},
+    @CommandLine.Option(names={"-f", "--fraction"},
             description="Maximum allowable fraction of ambiguities allowed for 'resolve' mode. If exceeded, use 'average' mode.", defaultValue = "1.0")
     private float max_ambiguity_fraction;
     @CommandLine.Option(names={"-c", "--cores"},
             description="Number of cores to use for parallel processing.", defaultValue = "1")
     private int cores;
+    @CommandLine.Option(names={"-tg", "--ignore-terminal-gaps"},
+            description="Ignore terminal gaps at beginning and end of sequences when calculating distances.")
+    private boolean ignoreTerminalGaps=true;
+    @CommandLine.Option(names={"-ag", "--ignore-all-gaps"},
+            description="Ignore all gaps when calculating distances.")
+    private boolean ignoreAllGaps=false;
 
     public void run() {
         if(is_server) {
@@ -75,6 +81,7 @@ public class Main implements Runnable{
                 snp.setOutputFile(outputFile);
                 snp.setEdgeThreshold(Float.parseFloat(edgeThresholdString));
                 snp.setCores(cores);
+                snp.setIgnoreTerminalGaps(ignoreTerminalGaps);
                 snp.snpFasta();
             }
         }
@@ -127,6 +134,8 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
     private JLabel maxAmbiguityFractionLabel;
     private JCheckBox useMaxCoresCheckbox;
     private JTextField numCoresField;
+    private JCheckBox ignoreTerminalGapsCheckbox;
+    private JCheckBox ignoreAllGapsCheckbox;
 
 
     private File fastaFile, edgeListFile;
@@ -225,6 +234,14 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         ambigsPanel.add(maxAmbigsPanel);
         add(ambigsPanel, BorderLayout.CENTER);
 
+        JPanel gapHandlingPanel = new JPanel();
+        gapHandlingPanel.setLayout(new GridLayout(1, 2));
+        gapHandlingPanel.setBorder(BorderFactory.createTitledBorder("Gap Handling"));
+        ignoreTerminalGapsCheckbox = new JCheckBox("Ignore terminal gaps", true);
+        gapHandlingPanel.add(ignoreTerminalGapsCheckbox);
+        ignoreAllGapsCheckbox = new JCheckBox("Ignore all gaps", false);
+        gapHandlingPanel.add(ignoreAllGapsCheckbox);
+
         resolveBut.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -251,10 +268,12 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         gapmmBut.addActionListener(hideMaxAmbiguityListener);
         skipBut.addActionListener(hideMaxAmbiguityListener);
 
+        
 
         tn93ModeBut.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                remove(gapHandlingPanel);
                 add(ambigsPanel, BorderLayout.CENTER);
                 runBut.setText("Run TN93");
                 runBut.setActionCommand("runTN93");
@@ -269,9 +288,8 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         snpModeBut.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // When SNP but is pressed, hide the ambiguities panel. 
-                // and change runbut text to Run SNP
                 remove(ambigsPanel);
+                add(gapHandlingPanel, BorderLayout.CENTER);
                 runBut.setText("Run SNP");
                 runBut.setActionCommand("runSNP");
                 tn93ModeBut.setSelected(false);
@@ -281,7 +299,17 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
             }
         });
 
-
+        ignoreAllGapsCheckbox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(ignoreAllGapsCheckbox.isSelected()) {
+                    ignoreTerminalGapsCheckbox.setSelected(true);
+                    ignoreTerminalGapsCheckbox.setEnabled(false);
+                } else {
+                    ignoreTerminalGapsCheckbox.setEnabled(true);
+                }
+            }
+        });
 
 
         JPanel coresPanel = new JPanel();
@@ -376,6 +404,17 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
                     showMessageDialog(null, "Number of cores should be number!");
                 }
             }
+            if(ignoreTerminalGapsCheckbox.isSelected()) {
+                snp.setIgnoreTerminalGaps(true);
+            } else {
+                snp.setIgnoreTerminalGaps(false);
+            }
+
+            if(ignoreAllGapsCheckbox.isSelected()) {
+                snp.setIgnoreAllGaps(true);
+            } else {
+                snp.setIgnoreAllGaps(false);
+            }
         
             SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
                 @Override
@@ -415,6 +454,12 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
                 } catch (NumberFormatException ex) {
                     showMessageDialog(null, "Number of cores should be number!");
                 }
+            }
+
+            if(ignoreTerminalGapsCheckbox.isSelected()) {
+                snp.setIgnoreTerminalGaps(true);
+            } else {
+                snp.setIgnoreTerminalGaps(false);
             }
 
             SwingWorker<Void,Void> worker = new SwingWorker<Void,Void>() {

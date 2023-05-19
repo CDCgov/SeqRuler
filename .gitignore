@@ -47,3 +47,5 @@ target/
 cdc_python_tn93/
 
 !SeqRuler.jar
+
+*.DS_Store

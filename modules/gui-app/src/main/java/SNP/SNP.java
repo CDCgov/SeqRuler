@@ -31,6 +31,8 @@ public class SNP extends Observable {
     private File outputFile;
     private float edgeThreshold;
     private int cores = 1;
+    private boolean ignoreTerminalGaps = true;
+    private boolean ignoreAllGaps = false;
     public void setInputFile(File inputFile) {
         this.inputFile = inputFile;
     }
@@ -43,6 +45,13 @@ public class SNP extends Observable {
     public void setCores(int cores) {
         this.cores = cores;
     }
+    public void setIgnoreTerminalGaps(boolean ignoreTerminalGaps) {
+        this.ignoreTerminalGaps = ignoreTerminalGaps;
+    }
+    public void setIgnoreAllGaps(boolean ignoreAllGaps) {
+        this.ignoreAllGaps = ignoreAllGaps;
+    }
+
 
     public void snpFasta() {
         System.out.println("Running SNPFASTA");
@@ -152,12 +161,44 @@ public class SNP extends Observable {
         int d = 0;
         String seq1 = s1.getSeq();
         String seq2 = s2.getSeq();
-        for (int i = 0; i < seq1.length(); ++i) {
-            if (seq1.charAt(i) != seq2.charAt(i) && seq1.charAt(i) != '-' && seq2.charAt(i) != '-') {
-                ++d;
+        int start_pos = 0;
+        int end_pos = Math.min(seq1.length(), seq2.length());
+        if (this.ignoreTerminalGaps) {
+            int s1s = findBeginningGapsEnd(seq1);
+            int s1e = findTerminalGapsStart(seq1);
+            int s2s = findBeginningGapsEnd(seq2);
+            int s2e = findTerminalGapsStart(seq2);
+            start_pos = Math.max(s1s, s2s);
+            end_pos = Math.min(s1e, s2e);
+        }
+        for (int i = start_pos; i < end_pos; ++i) {
+            if (seq1.charAt(i) != seq2.charAt(i)) {
+                if (this.ignoreAllGaps) {
+                    if (seq1.charAt(i) != '-' && seq2.charAt(i) != '-') {
+                        ++d;
+                    }
+                } else {
+                    ++d;
+                }
             }
         }
         return d;
+    }
+
+    private static int findBeginningGapsEnd(String seq) {
+        int i = 0;
+        while (i < seq.length() && seq.charAt(i) == '-') {
+            ++i;
+        }
+        return i;
+    }
+
+    private static int findTerminalGapsStart(String seq) {
+        int i = seq.length() - 1;
+        while (i >= 0 && seq.charAt(i) == '-') {
+            --i;
+        }
+        return i;
     }
 
     private static ArrayList<Seq> read_fasta(File inputFile) throws FileNotFoundException {
