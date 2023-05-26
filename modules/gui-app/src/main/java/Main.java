@@ -3,6 +3,9 @@ import SNP.SNP;
 import picocli.CommandLine;
 
 import javax.swing.*;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.DocumentEvent;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -297,6 +300,8 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
             }
         });
 
+
+
         ignoreAllGapsCheckbox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -309,6 +314,40 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
             }
         });
 
+
+        fastaTextField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                fastaFile = new File(fastaFile.getParent(), fastaTextField.getText());
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                fastaFile = new File(fastaFile.getParent(), fastaTextField.getText());
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                fastaFile = new File(fastaFile.getParent(), fastaTextField.getText());
+            }
+        });
+
+        edgeListTextField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                edgeListFile = new File(edgeListFile.getParent(), edgeListTextField.getText());
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                edgeListFile = new File(edgeListFile.getParent(), edgeListTextField.getText());
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                edgeListFile = new File(edgeListFile.getParent(), edgeListTextField.getText());
+            }
+        });
 
         JPanel coresPanel = new JPanel();
         coresPanel.setLayout(new GridLayout(1, 2));
