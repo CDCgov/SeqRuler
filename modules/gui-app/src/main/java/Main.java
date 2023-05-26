@@ -123,7 +123,7 @@ public class Main implements Runnable{
 
 class TN93_Panel extends JPanel implements ActionListener, Observer {
     private float edgeThreshold;
-    private JButton tn93ModeBut, snpModeBut;
+    private JToggleButton tn93ModeBut, snpModeBut;
     private JButton inBut, outBut, runBut;
     private JTextField fastaTextField, edgeListTextField, edgeThresholdField;
     private JProgressBar progress;
@@ -152,8 +152,8 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         snp.addObserver(this);
 
         modeGroup = new ButtonGroup();
-        tn93ModeBut = new JButton("TN93 Distance");
-        snpModeBut = new JButton("SNP Distance");
+        tn93ModeBut = new JToggleButton("TN93 Distance");
+        snpModeBut = new JToggleButton("SNP Distance");
         modeGroup.add(tn93ModeBut);
         modeGroup.add(snpModeBut);
         tn93ModeBut.setSelected(true);
@@ -273,11 +273,10 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         tn93ModeBut.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                remove(gapHandlingPanel);
-                add(ambigsPanel, BorderLayout.CENTER);
                 runBut.setText("Run TN93");
                 runBut.setActionCommand("runTN93");
-                snpModeBut.setSelected(false);
+                remove(gapHandlingPanel);
+                add(ambigsPanel, BorderLayout.CENTER);
                 revalidate();
                 repaint();
                 frame.pack();
@@ -292,7 +291,6 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
                 add(gapHandlingPanel, BorderLayout.CENTER);
                 runBut.setText("Run SNP");
                 runBut.setActionCommand("runSNP");
-                tn93ModeBut.setSelected(false);
                 revalidate();
                 repaint();
                 frame.pack();
