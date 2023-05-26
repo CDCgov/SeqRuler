@@ -134,7 +134,7 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
     private ButtonGroup ambiguityHandlingGroup;
     private JRadioButton resolveBut, averageBut, gapmmBut, skipBut;
     private JTextField maxAmbiguityFractionField;
-    private JLabel maxAmbiguityFractionLabel;
+    private JLabel maxEdgeThresholdLabel, maxAmbiguityFractionLabel;
     private JCheckBox useMaxCoresCheckbox;
     private JTextField numCoresField;
     private JCheckBox ignoreTerminalGapsCheckbox;
@@ -172,13 +172,12 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         gapmmBut = new JRadioButton("Gapmm");
         skipBut = new JRadioButton("Skip");
 
-
-        ambiguityHandlingGroup.add(resolveBut);
         ambiguityHandlingGroup.add(averageBut);
+        ambiguityHandlingGroup.add(resolveBut);
         ambiguityHandlingGroup.add(gapmmBut);
         ambiguityHandlingGroup.add(skipBut);
 
-        resolveBut.setSelected(true);
+        averageBut.setSelected(true);
 
         fastaTextField = new JTextField(20);
         edgeListTextField = new JTextField(20);
@@ -196,11 +195,15 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
 
         setLayout(new BorderLayout());
 
+
+        maxEdgeThresholdLabel = new JLabel("Maximum distance threshold:", JLabel.CENTER);
+        maxEdgeThresholdLabel.setToolTipText("Distances greater than this value will not be included in output file");
+        
         JPanel fastaPanel = new JPanel();
         fastaPanel.setLayout(new GridLayout(5, 2));
         fastaPanel.add(tn93ModeBut);
         fastaPanel.add(snpModeBut);
-        fastaPanel.add(new JLabel("Maximum edge length:", JLabel.RIGHT));
+        fastaPanel.add(maxEdgeThresholdLabel);
         fastaPanel.add(edgeThresholdField);
         fastaPanel.add(fastaTextField);
         fastaPanel.add(inBut);
@@ -212,17 +215,17 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
 
 
         JPanel ambigsPanel = new JPanel();   
-        ambigsPanel.setLayout(new GridLayout(2, 1));
+        ambigsPanel.setLayout(new GridLayout(1, 1));
         ambigsPanel.setBorder(BorderFactory.createTitledBorder("Ambiguity Handling"));
 
         JPanel radioButtonsPanel = new JPanel();
         radioButtonsPanel.setLayout(new GridLayout(1, 4));
         resolveBut.setToolTipText("Count any resolutions that match as a perfect match");
         averageBut.setToolTipText("Average all possible resolutions");
-        gapmmBut.setToolTipText("Count character-gap sites as 4-way mismatches, otherwise Average.");
+        gapmmBut.setToolTipText("Count character-gap sites as 4-way mismatches, otherwise Average");
         skipBut.setToolTipText("Skip all sites with gaps or ambiguities");
-        radioButtonsPanel.add(resolveBut);
         radioButtonsPanel.add(averageBut);
+        radioButtonsPanel.add(resolveBut);
         radioButtonsPanel.add(gapmmBut);
         radioButtonsPanel.add(skipBut);
         ambigsPanel.add(radioButtonsPanel, BorderLayout.NORTH);
@@ -230,11 +233,11 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         JPanel maxAmbigsPanel = new JPanel();
         maxAmbigsPanel.setLayout(new GridLayout(1, 2));
         maxAmbiguityFractionLabel = new JLabel("Maximum ambiguity fraction: ", JLabel.CENTER);
+        maxAmbiguityFractionLabel.setToolTipText("Sequences with a higher proportion of ambiguities than this value will instead be averaged");
         maxAmbigsPanel.add(maxAmbiguityFractionLabel);
         maxAmbiguityFractionField = new JTextField("0.05");
         maxAmbigsPanel.add(maxAmbiguityFractionField, BorderLayout.SOUTH);
         
-        ambigsPanel.add(maxAmbigsPanel);
         add(ambigsPanel, BorderLayout.CENTER);
 
         JPanel gapHandlingPanel = new JPanel();
@@ -250,8 +253,6 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
             public void actionPerformed(ActionEvent e) {
                 ambigsPanel.add(maxAmbigsPanel);
                 ambigsPanel.setLayout(new GridLayout(2, 1));
-                ambigsPanel.revalidate();
-                ambigsPanel.repaint();
                 frame.pack();
             }
         });
@@ -259,10 +260,8 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         ActionListener hideMaxAmbiguityListener = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ambigsPanel.remove(maxAmbigsPanel);
                 ambigsPanel.setLayout(new GridLayout(1, 1));
-                ambigsPanel.revalidate();
-                ambigsPanel.repaint();
+                ambigsPanel.remove(maxAmbigsPanel);
                 frame.pack();
             }
         };
