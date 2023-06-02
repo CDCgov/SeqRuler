@@ -158,6 +158,7 @@ public class TN93 extends Observable {
                 
                 futures.add(executor.submit( () -> {
                     double d = tn93(seq1, seq2);
+                    if (d == -0) d = 0;
                     if (d < this.edgeThreshold)
                         writerRef.get().println(String.format("%s,%s,%f", seq1.getName(), seq2.getName(), d));
                     return new Triplet<>(row, col, d);
