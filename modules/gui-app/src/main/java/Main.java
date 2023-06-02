@@ -244,8 +244,10 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         gapHandlingPanel.setLayout(new GridLayout(1, 2));
         gapHandlingPanel.setBorder(BorderFactory.createTitledBorder("Gap Handling"));
         ignoreTerminalGapsCheckbox = new JCheckBox("Ignore terminal gaps", true);
+        ignoreTerminalGapsCheckbox.setToolTipText("Gaps at the beginning and end of sequences don't contribue to distance");
         gapHandlingPanel.add(ignoreTerminalGapsCheckbox);
         ignoreAllGapsCheckbox = new JCheckBox("Ignore all gaps", false);
+        ignoreAllGapsCheckbox.setToolTipText("Gaps don't contribute to distance");
         gapHandlingPanel.add(ignoreAllGapsCheckbox);
 
         resolveBut.addActionListener(new ActionListener() {
