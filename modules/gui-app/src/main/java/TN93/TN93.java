@@ -166,7 +166,7 @@ public class TN93 extends Observable {
                 if (futures.size() > 1000 || pairs_count < 1000 ) {
                     for (Future<Triplet<Integer, Integer, Double>> future : futures) {
                         try {
-                            future.get();         
+                            future.get();
                         }
                         catch (InterruptedException | ExecutionException e) {
                             e.printStackTrace();

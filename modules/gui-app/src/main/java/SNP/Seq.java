@@ -36,7 +36,7 @@ public class Seq {
         this.seq = seq.toUpperCase();
         seq_enc = new int[seq.length()];
         for(int i=0;i<seq.length();++i) {
-            char c = seq.charAt(i);
+            char c = this.seq.charAt(i);
             if(!nucl.containsKey(c)) seq_enc[i] = nucl.get('N');
             else seq_enc[i] = nucl.get(c);
         }
