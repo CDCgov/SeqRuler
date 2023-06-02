@@ -1,6 +1,6 @@
 # SeqRuler
 <div align='center'>
-  <img width=80% height=80% alt="Screenshot 2023-05-19 at 2 41 18 PM" src="https://github.com/CDCgov/SeqRuler/assets/36117344/5a93cbb5-a712-4ca8-869f-fa49d4c3a5f1">
+  <img width=80% height=80% alt="Screenshot 2023-05-19 at 2 41 18 PM" src="https://github.com/CDCgov/SeqRuler/assets/36117344/f7afeaad-4b7f-43e8-9d32-992dbf1baebc">
 </div>
 
 GUI interface for calculating TN93 distance or SNP (Hamming) distance between all sequences in the input fasta file.
