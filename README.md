@@ -8,7 +8,7 @@ GUI interface for calculating TN93 distance or SNP (Hamming) distance between al
 ## Download or Compilation
 
 - Download:
-[SeqRuler.jar](https://github.com/CDCgov/SeqRuler/releases/download/v3.1/SeqRuler.jar)
+[SeqRuler.jar](https://github.com/CDCgov/SeqRuler/releases/download/v3.2/SeqRuler.jar)
 
 
 - Compilation:
