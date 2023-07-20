@@ -1,9 +1,12 @@
 package SNP;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.FileWriter;
+import java.io.BufferedReader;
 import java.util.*;
 
 import java.util.concurrent.TimeUnit;
@@ -70,8 +73,54 @@ public class SNP extends Observable {
         }
     }
 
+    public void snp(ArrayList<Seq> seqs) {
+        if (this.cores == 1) {
+            snp_sequential(seqs);
+        } else {
+            snp_parallel(seqs);
+        }
+    }
 
-    public void snp(ArrayList<Seq> seqs){
+    public void snp_sequential(ArrayList<Seq> seqs) {
+        //sequential version
+        long pairs_count = (seqs.size() * (seqs.size() - 1)) / 2;
+        long current_pair = 0;
+        long startTime = System.nanoTime(), estimatedTime;
+
+        PrintWriter f = null;
+        try {
+            f = new PrintWriter(new BufferedWriter(new FileWriter(outputFile)));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        f.println("Source,Target,Distance");
+        for (int i = 1; i < seqs.size(); ++i) {
+            System.out.print("Processing " + i + " of " + seqs.size() + " sequences...\r");
+            for (int j = 0; j < i; ++ j) {
+                int d = snp(seqs.get(i), seqs.get(j));
+                if ((float) d / seqs.get(i).getSeq().length() <= this.edgeThreshold) {
+                    f.println(String.format("%s,%s,%d", seqs.get(i).getName(), seqs.get(j).getName(), d));
+                }
+                ++current_pair;
+                if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
+                    estimatedTime = System.nanoTime() - startTime;
+                    int percCompleted = (int) (current_pair*100/pairs_count);
+                    System.out.print(String.format("%d%% completed in ", percCompleted));
+                    System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+                    System.out.println(" sec                                ");
+                    setChanged();
+                    notifyObservers(percCompleted);
+                }
+            }
+        }
+        f.flush();
+        f.close();
+        setChanged();
+        notifyObservers(100);
+        return;
+    }
+
+    public void snp_parallel(ArrayList<Seq> seqs){
         if (this.cores >= seqs.size()) {
             this.cores = seqs.size()-1;
         }
@@ -81,8 +130,8 @@ public class SNP extends Observable {
         List<Future<Triplet<Integer, Integer, Integer>>> futures = new ArrayList<>();
         AtomicReference<PrintWriter> f = new AtomicReference<>();
         try {
-            f.set(new PrintWriter(outputFile));
-        } catch (FileNotFoundException e) {
+            f.set(new PrintWriter(new BufferedWriter(new FileWriter(outputFile))));
+        } catch (IOException e) {
             e.printStackTrace();
         }
         f.get().println("Source,Target,Distance");

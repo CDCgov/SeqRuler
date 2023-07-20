@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -121,7 +123,16 @@ public class TN93 extends Observable {
         }
     }
 
-    public void tn93(ArrayList<Seq> seqs){
+    public void tn93(ArrayList<Seq> seqs) {
+        if (cores > 1) {
+            tn93_parallel(seqs);
+        } else {
+            tn93_sequential(seqs);
+        }
+    }
+    
+
+    public void tn93_parallel(ArrayList<Seq> seqs){
         if ("resolve".equals(ambiguityHandling)) {
             ambig_fractions = count_ambiguities(seqs);
         }
@@ -135,7 +146,7 @@ public class TN93 extends Observable {
         List<Future<Triplet<Integer, Integer, Double>>> futures = new ArrayList<>();
         AtomicReference<PrintWriter> writerRef = new AtomicReference<>();
         try {
-            writerRef.set(new PrintWriter(outputFile));
+            writerRef.set(new PrintWriter(new BufferedWriter(new FileWriter(outputFile))));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -217,6 +228,50 @@ public class TN93 extends Observable {
         notifyObservers(100);
         return;
     }
+
+    public void tn93_sequential(ArrayList<Seq> seqs) {
+        if ("resolve".equals(ambiguityHandling)) {
+            ambig_fractions = count_ambiguities(seqs);
+        }
+        PrintWriter f = null;
+        try {
+            f = new PrintWriter(new BufferedWriter(new FileWriter(outputFile)));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        f.println("Source,Target,Distance");
+
+        long pairs_count = (seqs.size() * seqs.size() - seqs.size())/2;
+        long current_pair = 0;
+        long startTime = System.nanoTime(), estimatedTime;
+
+        for (int i = 1; i < seqs.size(); ++i) {
+            System.out.print("Processing " + i + " of " + seqs.size() + " sequences...\r");
+            for (int j = 0; j < i; ++ j) {
+                double distance = tn93(seqs.get(i), seqs.get(j));
+                if (distance <= edgeThreshold) {
+                    f.println(seqs.get(i).getName() + "," + seqs.get(j).getName() + "," + distance);
+                }
+                current_pair++;
+                if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
+                    estimatedTime = System.nanoTime() - startTime;
+                    int percCompleted = (int) (current_pair*100/pairs_count);
+                    System.out.print(String.format("%d%% completed in ", percCompleted));
+                    System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+                    System.out.println(" sec                                ");
+                    setChanged();
+                    notifyObservers(percCompleted);
+                }
+            }
+        }
+        f.flush();
+        f.close();
+        setChanged();
+        notifyObservers(100);
+        return;
+    }
+
 
     private HashMap<Seq,Double> count_ambiguities(ArrayList<Seq> seqs) {
         HashMap<Seq,Double> ambig_fractions = new HashMap<>();
