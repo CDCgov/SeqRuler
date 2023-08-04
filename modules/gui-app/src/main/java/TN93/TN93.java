@@ -7,10 +7,7 @@ import java.io.PrintWriter;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.Observable;
-
 //Parallelization
 import java.util.concurrent.*;
 
@@ -275,7 +272,6 @@ public class TN93 extends Observable {
 
     private HashMap<Seq,Double> count_ambiguities(ArrayList<Seq> seqs) {
         HashMap<Seq,Double> ambig_fractions = new HashMap<>();
-        int seq_length = seqs.get(0).getSeq_enc().length;
         for (Seq seq : seqs) {
             int ambigs_count = 0;
             for (int i = 0; i < seq.getSeq_enc().length; ++i) {
@@ -284,7 +280,7 @@ public class TN93 extends Observable {
                     ambigs_count++;
                 }
             }
-            ambig_fractions.put(seq, ambigs_count / (double) seq_length);
+            ambig_fractions.put(seq, ambigs_count / (double) seq.getEffective_len());
         }
         return ambig_fractions;
     }

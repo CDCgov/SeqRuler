@@ -31,6 +31,7 @@ public class Seq {
     private String name;
     private String seq;
     private int[] seq_enc;
+    private int effective_len;
     Seq(String name, String seq) {
         this.name = name;
         this.seq = seq.toUpperCase();
@@ -40,6 +41,11 @@ public class Seq {
             if(!nucl.containsKey(c)) seq_enc[i] = nucl.get('N');
             else seq_enc[i] = nucl.get(c);
         }
+        this.effective_len = getEffectiveLength();
+        
+
+
+
     }
     public String getName() {
         return name;
@@ -51,5 +57,34 @@ public class Seq {
 
     public int[] getSeq_enc() {
         return seq_enc;
+    }
+
+    public int getEffective_len() {
+        return effective_len;
+    }
+
+    public int getEffectiveLength() {
+        int effective_start = 0;
+        for(int i=0;i<seq.length();++i) {
+            char c = seq.charAt(i);
+            if (c == Gap) continue;
+            else {
+                effective_start = i;
+                break;
+            }
+        }
+        int effective_end = seq.length()-1;
+        for (int i=seq.length()-1;i>=0;--i) {
+            char c = seq.charAt(i);
+            if (c == Gap) continue;
+            else {
+                effective_end = i;
+                break;
+            }
+        }
+
+        int len = effective_end - effective_start + 1;
+
+        return len;
     }
 }
