@@ -18,10 +18,6 @@ import static javax.swing.JOptionPane.showMessageDialog;
 
 @CommandLine.Command(name = "SeqRuler", mixinStandardHelpOptions = true, version = "3.0")
 public class Main implements Runnable{
-    @CommandLine.Option(names={"-stdin"}, description="read fasta from stdin. Alternative to reading from a file (-i)", defaultValue = "false")
-    private boolean use_stdin;
-    @CommandLine.Option(names={"-stdout"}, description="write to stdout. Alternative to writing to a file (-o)", defaultValue = "false")
-    private boolean use_stdout;
     @CommandLine.Option(names={"-i", "--inFile"}, description="input file with sequences",
             paramLabel = "FILE")
     private File inputFile;
@@ -29,10 +25,14 @@ public class Main implements Runnable{
             description="output file with distances",
             paramLabel = "FILE")
     private File outputFile;
+    @CommandLine.Option(names={"-s", "--stdin"}, description="read fasta from stdin. Alternative to reading from a file (-i)", defaultValue = "false")
+    private boolean use_stdin;
+    @CommandLine.Option(names={"-S", "--stdout"}, description="write distances to stdout. Alternative to writing to a file (-o)", defaultValue = "false")
+    private boolean use_stdout;
     @CommandLine.Option(names={"-d", "--distance-method"},
             description="distance metric to use. One of [TN93, SNP]. Default: TN93", defaultValue = "TN93")
     private String distanceMethod;
-    @CommandLine.Option(names={"-s", "--server"}, description="run jetty server", defaultValue = "false")
+    @CommandLine.Option(names={"-r", "--run-server"}, description="run jetty server", defaultValue = "false")
     private boolean is_server;
     @CommandLine.Option(names={"-t", "--edge-threshold"},
             description="edges above the threshold are not reported in output", defaultValue = "1.0")
@@ -46,10 +46,10 @@ public class Main implements Runnable{
     @CommandLine.Option(names={"-c", "--cores"},
             description="Number of cores to use for parallel processing.", defaultValue = "1")
     private int cores;
-    @CommandLine.Option(names={"-tg", "--ignore-terminal-gaps"},
+    @CommandLine.Option(names={"-g", "--ignore-terminal-gaps"},
             description="Ignore terminal gaps at beginning and end of sequences when calculating distances. [SNP only] Default: true")
     private boolean ignoreTerminalGaps=true;
-    @CommandLine.Option(names={"-ag", "--ignore-all-gaps"},
+    @CommandLine.Option(names={"-G", "--ignore-all-gaps"},
             description="Ignore all gaps when calculating distances. [SNP only] Default: false")
     private boolean ignoreAllGaps=false;
 
