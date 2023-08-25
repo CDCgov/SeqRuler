@@ -8,11 +8,7 @@ import java.io.PrintWriter;
 import java.io.FileWriter;
 import java.io.BufferedReader;
 import java.util.*;
-
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.Observable;
-
 //Parallelization
 import java.util.concurrent.*;
 
@@ -36,6 +32,15 @@ public class SNP extends Observable {
     private int cores = 1;
     private boolean ignoreTerminalGaps = true;
     private boolean ignoreAllGaps = false;
+    private boolean use_stdin = false;
+    private boolean use_stdout = false;
+
+    public void setUseStdin(boolean use_stdin) {
+        this.use_stdin = use_stdin;
+    }
+    public void setUseStdout(boolean use_stdout) {
+        this.use_stdout = use_stdout;
+    }
     public void setInputFile(File inputFile) {
         this.inputFile = inputFile;
     }
@@ -57,12 +62,17 @@ public class SNP extends Observable {
 
 
     public void snpFasta() {
-        System.out.println("Running SNPFASTA");
+        if (!use_stdout) System.out.println("Running SNPFASTA");
         PrintWriter f = null;
         try {
-            System.out.println("Reading input file...");
-            ArrayList<Seq> seqs = read_fasta(inputFile);
-            System.out.println("Calculating distances...");
+            if (!use_stdout) System.out.println("Reading input file...");
+            ArrayList<Seq> seqs;
+            if (use_stdin) {
+                seqs = read_fasta_stdin();
+            } else {
+                seqs = read_fasta(inputFile);
+            }
+            if (!use_stdout) System.out.println("Calculating distances...");
             snp(seqs);
         }
         catch(FileNotFoundException e) {
@@ -88,33 +98,42 @@ public class SNP extends Observable {
         long startTime = System.nanoTime(), estimatedTime;
 
         PrintWriter f = null;
-        try {
-            f = new PrintWriter(new BufferedWriter(new FileWriter(outputFile)));
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (use_stdout)
+            System.out.println("Source,Target,Distance");
+        else {
+            try {
+                f = new PrintWriter(new BufferedWriter(new FileWriter(outputFile)));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            f.println("Source,Target,Distance");
         }
-        f.println("Source,Target,Distance");
         for (int i = 1; i < seqs.size(); ++i) {
-            System.out.print("Processing " + i + " of " + seqs.size() + " sequences...\r");
+            if (!use_stdout) System.out.print("Processing " + i + " of " + seqs.size() + " sequences...\r");
             for (int j = 0; j < i; ++ j) {
                 int d = snp(seqs.get(i), seqs.get(j));
                 if ((float) d / seqs.get(i).getSeq().length() <= this.edgeThreshold) {
-                    f.println(String.format("%s,%s,%d", seqs.get(i).getName(), seqs.get(j).getName(), d));
+                    if (use_stdout)
+                        System.out.println(String.format("%s,%s,%d", seqs.get(i).getName(), seqs.get(j).getName(), d));
+                    else
+                        f.println(String.format("%s,%s,%d", seqs.get(i).getName(), seqs.get(j).getName(), d));
                 }
                 ++current_pair;
                 if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
                     estimatedTime = System.nanoTime() - startTime;
                     int percCompleted = (int) (current_pair*100/pairs_count);
-                    System.out.print(String.format("%d%% completed in ", percCompleted));
-                    System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                    System.out.println(" sec                                ");
+                    if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
+                    if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+                    if (!use_stdout) System.out.println(" sec                                ");
                     setChanged();
                     notifyObservers(percCompleted);
                 }
             }
         }
-        f.flush();
-        f.close();
+        if (!use_stdout) {
+            f.flush();
+            f.close();
+        }
         setChanged();
         notifyObservers(100);
         return;
@@ -125,22 +144,28 @@ public class SNP extends Observable {
             this.cores = seqs.size()-1;
         }
 
-        System.out.println("Creating thread pool with " + this.cores + " threads...");
+        if (!use_stdout) System.out.println("Creating thread pool with " + this.cores + " threads...");
         ExecutorService executor = Executors.newFixedThreadPool(this.cores);
         List<Future<Triplet<Integer, Integer, Integer>>> futures = new ArrayList<>();
         AtomicReference<PrintWriter> f = new AtomicReference<>();
-        try {
-            f.set(new PrintWriter(new BufferedWriter(new FileWriter(outputFile))));
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        if (use_stdout)
+            System.out.println("Source,Target,Distance");
+        else {
+            try {
+                f.set(new PrintWriter(new BufferedWriter(new FileWriter(outputFile))));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            f.get().println("Source,Target,Distance");
         }
-        f.get().println("Source,Target,Distance");
+
         long pairs_count = (seqs.size() * (seqs.size() - 1)) / 2;
         long current_pair = 0;
         long startTime = System.nanoTime(), estimatedTime;
 
         for (int i = 1; i < seqs.size(); ++i) {
-            System.out.print("Processing " + i + " of " + seqs.size() + " sequences...\r");
+            if (!use_stdout) System.out.print("Processing " + i + " of " + seqs.size() + " sequences...\r");
             for (int j = 0; j < i; ++ j) {
                 final int row = i;
                 final int col = j;
@@ -151,7 +176,10 @@ public class SNP extends Observable {
                 futures.add(executor.submit( () -> {
                     int d = snp(seq1, seq2);
                     if ((float) d / L <= this.edgeThreshold) {
-                        f.get().println(String.format("%s,%s,%d", seq1.getName(), seq2.getName(), d));
+                        if (use_stdout)
+                            System.out.println(String.format("%s,%s,%d", seq1.getName(), seq2.getName(), d));
+                        else
+                            f.get().println(String.format("%s,%s,%d", seq1.getName(), seq2.getName(), d));
                     }
                     return new Triplet<>(row, col, d);
                 }));
@@ -168,9 +196,9 @@ public class SNP extends Observable {
                         if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
                             estimatedTime = System.nanoTime() - startTime;
                             int percCompleted = (int) (current_pair*100/pairs_count);
-                            System.out.print(String.format("%d%% completed in ", percCompleted));
-                            System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                            System.out.println(" sec                                ");
+                            if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
+                            if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+                            if (!use_stdout) System.out.println(" sec                                ");
                             setChanged();
                             notifyObservers(percCompleted);
                         }
@@ -190,17 +218,19 @@ public class SNP extends Observable {
             if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
                 estimatedTime = System.nanoTime() - startTime;
                 int percCompleted = (int) (current_pair*100/pairs_count);
-                System.out.print(String.format("%d%% completed in ", percCompleted));
-                System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                System.out.println(" sec                                ");
+                if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
+                if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+                if (!use_stdout) System.out.println(" sec                                ");
                 setChanged();
                 notifyObservers(percCompleted);
             }
         }
 
         executor.shutdown();
-        f.get().flush();
-        f.get().close();
+        if (!use_stdout) {
+            f.get().flush();
+            f.get().close();
+        }
         setChanged();
         notifyObservers(100);
         return;
@@ -271,5 +301,11 @@ public class SNP extends Observable {
         }
         if(name.length()!=0) seqs.add(new Seq(name, seq));
         return seqs;
+    }
+    private static ArrayList<Seq> read_fasta_stdin() {
+        Scanner sc = new Scanner(System.in);
+        ArrayList<Seq> a = read_seqs(sc);
+        sc.close();
+        return a;
     }
 }

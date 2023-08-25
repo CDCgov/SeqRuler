@@ -18,6 +18,10 @@ import static javax.swing.JOptionPane.showMessageDialog;
 
 @CommandLine.Command(name = "SeqRuler", mixinStandardHelpOptions = true, version = "3.0")
 public class Main implements Runnable{
+    @CommandLine.Option(names={"-stdin"}, description="read fasta from stdin. Alternative to reading from a file (-i)", defaultValue = "false")
+    private boolean use_stdin;
+    @CommandLine.Option(names={"-stdout"}, description="write to stdout. Alternative to writing to a file (-o)", defaultValue = "false")
+    private boolean use_stdout;
     @CommandLine.Option(names={"-i", "--inFile"}, description="input file with sequences",
             paramLabel = "FILE")
     private File inputFile;
@@ -43,10 +47,10 @@ public class Main implements Runnable{
             description="Number of cores to use for parallel processing.", defaultValue = "1")
     private int cores;
     @CommandLine.Option(names={"-tg", "--ignore-terminal-gaps"},
-            description="Ignore terminal gaps at beginning and end of sequences when calculating distances.")
+            description="Ignore terminal gaps at beginning and end of sequences when calculating distances. [SNP only] Default: true")
     private boolean ignoreTerminalGaps=true;
     @CommandLine.Option(names={"-ag", "--ignore-all-gaps"},
-            description="Ignore all gaps when calculating distances.")
+            description="Ignore all gaps when calculating distances. [SNP only] Default: false")
     private boolean ignoreAllGaps=false;
 
     public void run() {
@@ -57,7 +61,7 @@ public class Main implements Runnable{
                 e.printStackTrace();
             }
         }
-        if(inputFile == null || outputFile == null) {
+        if(inputFile == null && use_stdin == false || outputFile == null && use_stdout == false) {
             javax.swing.SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     createAndShowGUI();
@@ -70,8 +74,15 @@ public class Main implements Runnable{
             if("TN93".equals(distanceMethod)) {
                 TN93 tn93 = new TN93();
                 tn93.setEdgeThreshold(Float.parseFloat(edgeThresholdString));
-                tn93.setInputFile(inputFile);
-                tn93.setOutputFile(outputFile);
+                if (use_stdin) 
+                    tn93.setUseStdin(true);
+                else
+                    tn93.setInputFile(inputFile);
+
+                if (use_stdout)
+                    tn93.setUseStdout(true);
+                else
+                    tn93.setOutputFile(outputFile);
                 System.out.println(ambiguityHandling);
                 tn93.setAmbiguityHandling(ambiguityHandling);
                 tn93.setMaxAmbiguityFraction(max_ambiguity_fraction);
@@ -80,8 +91,17 @@ public class Main implements Runnable{
             }
             else if("SNP".equals(distanceMethod)) {
                 SNP snp = new SNP();
-                snp.setInputFile(inputFile);
-                snp.setOutputFile(outputFile);
+
+                if (use_stdin) 
+                    snp.setUseStdin(true);
+                else
+                    snp.setInputFile(inputFile);
+
+                if (use_stdout)
+                    snp.setUseStdout(true);
+                else
+                    snp.setOutputFile(outputFile);
+
                 snp.setEdgeThreshold(Float.parseFloat(edgeThresholdString));
                 snp.setCores(cores);
                 snp.setIgnoreTerminalGaps(ignoreTerminalGaps);

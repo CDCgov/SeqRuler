@@ -36,9 +36,19 @@ public class TN93 extends Observable {
     private int cores = 1;
     private double max_ambiguity_fraction = -1; // -1 means no limit (default)
     private Map<Seq, Double> ambig_fractions = new HashMap<>();
+    private boolean use_stdin = false;
+    private boolean use_stdout = false;
 
     public void setEdgeThreshold(float edgeThreshold) {
         this.edgeThreshold = edgeThreshold;
+    }
+
+    public void setUseStdin(boolean use_stdin) {
+        this.use_stdin = use_stdin;
+    }
+
+    public void setUseStdout(boolean use_stdout) {
+        this.use_stdout = use_stdout;
     }
 
     public void setInputFile(File inputFile) {
@@ -107,9 +117,14 @@ public class TN93 extends Observable {
     public void tn93Fasta() {
         PrintWriter f = null;
         try {
-            System.out.println("Reading input file...");
-            ArrayList<Seq> seqs = read_fasta(inputFile);
-            System.out.println("Calculating distances...");
+            if (!use_stdout) System.out.println("Reading input file...");
+            ArrayList<Seq> seqs;
+            if (use_stdin) {
+                seqs = read_fasta_stdin();
+            } else {
+                seqs = read_fasta(inputFile);
+            }
+            if (!use_stdout) System.out.println("Calculating distances...");
             tn93(seqs);
         }
         catch(FileNotFoundException e) {
@@ -138,26 +153,31 @@ public class TN93 extends Observable {
             cores = seqs.size()-1;
         }
 
-        System.out.println("Creating thread pool with " + cores + " threads...");
+        if (!use_stdout) System.out.println("Creating thread pool with " + cores + " threads...");
         ExecutorService executor = Executors.newFixedThreadPool(cores);
         List<Future<Triplet<Integer, Integer, Double>>> futures = new ArrayList<>();
         AtomicReference<PrintWriter> writerRef = new AtomicReference<>();
-        try {
-            writerRef.set(new PrintWriter(new BufferedWriter(new FileWriter(outputFile))));
-        } catch (IOException e) {
-            e.printStackTrace();
+
+
+        if (use_stdout) 
+            System.out.println("Source,Target,Distance");
+        else {
+            try {
+                writerRef.set(new PrintWriter(new BufferedWriter(new FileWriter(outputFile))));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            writerRef.get().println("Source,Target,Distance");
         }
-
-        writerRef.get().println("Source,Target,Distance");
-
+            
 
         long pairs_count = (seqs.size() * seqs.size() - seqs.size())/2;
         long current_pair = 0;
         long startTime = System.nanoTime(), estimatedTime;
 
-        System.out.println("Submitting jobs...");
+        if (!use_stdout) System.out.println("Submitting jobs...");
         for (int i = 1; i < seqs.size(); ++i) {
-            System.out.print("Processing " + i + " of " + seqs.size() + " sequences...\r");
+            if (!use_stdout) System.out.print("Processing " + i + " of " + seqs.size() + " sequences...\r");
             for (int j = 0; j < i; ++ j) {
                 final int row = i;
                 final int col = j;
@@ -168,7 +188,10 @@ public class TN93 extends Observable {
                     double d = tn93(seq1, seq2);
                     if (d == -0) d = 0;
                     if (d < this.edgeThreshold)
-                        writerRef.get().println(String.format("%s,%s,%f", seq1.getName(), seq2.getName(), d));
+                        if (use_stdout)
+                            System.out.println(String.format("%s,%s,%f", seq1.getName(), seq2.getName(), d));
+                        else
+                            writerRef.get().println(String.format("%s,%s,%f", seq1.getName(), seq2.getName(), d));
                     return new Triplet<>(row, col, d);
                 }));
 
@@ -186,9 +209,9 @@ public class TN93 extends Observable {
                         if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0 ) {
                             estimatedTime = System.nanoTime() - startTime;
                             int percCompleted = (int) (current_pair*100/pairs_count);
-                            System.out.print(String.format("%d%% completed in ", percCompleted));
-                            System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                            System.out.println(" sec                                ");
+                            if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
+                            if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+                            if (!use_stdout) System.out.println(" sec                                ");
                             setChanged();
                             notifyObservers(percCompleted);
                         } 
@@ -210,17 +233,19 @@ public class TN93 extends Observable {
             if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
                 estimatedTime = System.nanoTime() - startTime;
                 int percCompleted = (int) (current_pair*100/pairs_count);
-                System.out.print(String.format("%d%% completed in ", percCompleted));
-                System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                System.out.println(" sec                                ");
+                if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
+                if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+                if (!use_stdout) System.out.println(" sec                                ");
                 setChanged();
                 notifyObservers(percCompleted);
             } 
         }
 
         executor.shutdown();
-        writerRef.get().flush();
-        writerRef.get().close();
+        if (!use_stdout) {
+            writerRef.get().flush();
+            writerRef.get().close();
+        }
         setChanged();
         notifyObservers(100);
         return;
@@ -231,39 +256,47 @@ public class TN93 extends Observable {
             ambig_fractions = count_ambiguities(seqs);
         }
         PrintWriter f = null;
-        try {
-            f = new PrintWriter(new BufferedWriter(new FileWriter(outputFile)));
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (use_stdout)
+            System.out.println("Source,Target,Distance");
+        else {
+            try {
+                f = new PrintWriter(new BufferedWriter(new FileWriter(outputFile)));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            f.println("Source,Target,Distance");
         }
-
-        f.println("Source,Target,Distance");
-
+          
         long pairs_count = (seqs.size() * seqs.size() - seqs.size())/2;
         long current_pair = 0;
         long startTime = System.nanoTime(), estimatedTime;
 
         for (int i = 1; i < seqs.size(); ++i) {
-            System.out.print("Processing " + i + " of " + seqs.size() + " sequences...\r");
+            if (!use_stdout) System.out.print("Processing " + i + " of " + seqs.size() + " sequences...\r");
             for (int j = 0; j < i; ++ j) {
                 double distance = tn93(seqs.get(i), seqs.get(j));
                 if (distance <= edgeThreshold) {
-                    f.println(seqs.get(i).getName() + "," + seqs.get(j).getName() + "," + distance);
+                    if (use_stdout)
+                        System.out.println(seqs.get(i).getName() + "," + seqs.get(j).getName() + "," + distance);
+                    else
+                        f.println(seqs.get(i).getName() + "," + seqs.get(j).getName() + "," + distance);
                 }
                 current_pair++;
                 if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
                     estimatedTime = System.nanoTime() - startTime;
                     int percCompleted = (int) (current_pair*100/pairs_count);
-                    System.out.print(String.format("%d%% completed in ", percCompleted));
-                    System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                    System.out.println(" sec                                ");
+                    if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
+                    if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+                    if (!use_stdout) System.out.println(" sec                                ");
                     setChanged();
                     notifyObservers(percCompleted);
                 }
             }
         }
-        f.flush();
-        f.close();
+        if (!use_stdout) {
+            f.flush();
+            f.close();
+        }
         setChanged();
         notifyObservers(100);
         return;
@@ -579,6 +612,13 @@ public class TN93 extends Observable {
 
     private static ArrayList<Seq> read_fasta(File inputFile) throws FileNotFoundException {
         Scanner sc = new Scanner(inputFile);
+        ArrayList<Seq> a = read_seqs(sc);
+        sc.close();
+        return a;
+    }
+
+    private static ArrayList<Seq> read_fasta_stdin() {
+        Scanner sc = new Scanner(System.in);
         ArrayList<Seq> a = read_seqs(sc);
         sc.close();
         return a;
