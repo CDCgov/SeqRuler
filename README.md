@@ -8,7 +8,7 @@ GUI interface for calculating TN93 distance or SNP (Hamming) distance between al
 ## Download or Compilation
 
 - Download:
-[SeqRuler.jar](https://github.com/CDCgov/SeqRuler/releases/download/v3.4/SeqRuler.jar)
+[SeqRuler.jar](https://github.com/CDCgov/SeqRuler/releases/download/v3.5/SeqRuler.jar)
 
 
 - Compilation:
@@ -26,8 +26,8 @@ java -jar SeqRuler.jar
 
 ```bash
 java -jar SeqRuler.jar -h
-
-Usage: SeqRuler [-gGhrsSV] [-a=<ambiguityHandling>] [-c=<cores>]
+                                    
+Usage: SeqRuler [-gGhprsSV] [-a=<ambiguityHandling>] [-c=<cores>]
                 [-d=<distanceMethod>] [-f=<max_ambiguity_fraction>] [-i=FILE]
                 [-o=FILE] [-t=<edgeThresholdString>]
   -a, --ambiguity, --ambiguities=<ambiguityHandling>
@@ -47,6 +47,8 @@ Usage: SeqRuler [-gGhrsSV] [-a=<ambiguityHandling>] [-c=<cores>]
   -h, --help              Show this help message and exit.
   -i, --inFile=FILE       input file with sequences
   -o, --outFile=FILE      output file with distances
+  -p, --pairs             read pairs of sequences from stdin, calculate distance for
+                            each pair. format "name1, seq1, name2, seq2\n"
   -r, --run-server        run jetty server
   -s, --stdin             read fasta from stdin. Alternative to reading from a file
                             (-i)
