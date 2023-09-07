@@ -29,6 +29,8 @@ public class Main implements Runnable{
     private boolean use_stdin;
     @CommandLine.Option(names={"-S", "--stdout"}, description="write distances to stdout. Alternative to writing to a file (-o)", defaultValue = "false")
     private boolean use_stdout;
+    @CommandLine.Option(names={"-p", "--pairs"}, description="read pairs of sequences from stdin, calculate distance for each pair. format \"name1, seq1, name2, seq2\\n\"", defaultValue = "false")
+    private boolean input_as_pairs;
     @CommandLine.Option(names={"-d", "--distance-method"},
             description="distance metric to use. One of [TN93, SNP]. Default: TN93", defaultValue = "TN93")
     private String distanceMethod;
@@ -48,10 +50,12 @@ public class Main implements Runnable{
     private int cores;
     @CommandLine.Option(names={"-g", "--ignore-terminal-gaps"},
             description="Ignore terminal gaps at beginning and end of sequences when calculating distances. [SNP only] Default: true")
-    private boolean ignoreTerminalGaps=true;
+    private boolean ignoreTerminalGaps=true; //snp only
     @CommandLine.Option(names={"-G", "--ignore-all-gaps"},
             description="Ignore all gaps when calculating distances. [SNP only] Default: false")
-    private boolean ignoreAllGaps=false;
+    private boolean ignoreAllGaps=false; //snp only
+
+
 
     public void run() {
         if(is_server) {
@@ -61,7 +65,7 @@ public class Main implements Runnable{
                 e.printStackTrace();
             }
         }
-        if(inputFile == null && use_stdin == false || outputFile == null && use_stdout == false) {
+        if(inputFile == null && use_stdin == false && input_as_pairs == false || outputFile == null && use_stdout == false) {
             javax.swing.SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     createAndShowGUI();
@@ -74,8 +78,11 @@ public class Main implements Runnable{
             if("TN93".equals(distanceMethod)) {
                 TN93 tn93 = new TN93();
                 tn93.setEdgeThreshold(Float.parseFloat(edgeThresholdString));
+    
                 if (use_stdin) 
                     tn93.setUseStdin(true);
+                    if (input_as_pairs)
+                        tn93.setInputAsPairs(true);
                 else
                     tn93.setInputFile(inputFile);
 
@@ -94,6 +101,8 @@ public class Main implements Runnable{
 
                 if (use_stdin) 
                     snp.setUseStdin(true);
+                    if (input_as_pairs)
+                        snp.setInputAsPairs(true);
                 else
                     snp.setInputFile(inputFile);
 

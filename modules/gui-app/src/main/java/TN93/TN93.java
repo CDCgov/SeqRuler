@@ -12,6 +12,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.*;
 
 
+
+
 import static java.lang.Math.log;
 
 public class TN93 extends Observable {
@@ -28,6 +30,16 @@ public class TN93 extends Observable {
         }
     }
 
+    public static class Pair<A, B> {
+        final A first;
+        final B second;
+    
+        public Pair(A first, B second) {
+            this.first = first;
+            this.second = second;
+        }
+    }
+
 
     private float edgeThreshold = 1;
     private File inputFile;
@@ -35,9 +47,9 @@ public class TN93 extends Observable {
     private String ambiguityHandling;
     private int cores = 1;
     private double max_ambiguity_fraction = -1; // -1 means no limit (default)
-    private Map<Seq, Double> ambig_fractions = new HashMap<>();
     private boolean use_stdin = false;
     private boolean use_stdout = false;
+    private boolean input_as_pairs = false;
 
     public void setEdgeThreshold(float edgeThreshold) {
         this.edgeThreshold = edgeThreshold;
@@ -69,6 +81,10 @@ public class TN93 extends Observable {
 
     public void setCores(int cores) {
         this.cores = cores;
+    }
+
+    public void setInputAsPairs(boolean input_as_pairs) {
+        this.input_as_pairs = input_as_pairs;
     }
 
     final static int[][] resolutions = {
@@ -119,7 +135,12 @@ public class TN93 extends Observable {
         try {
             if (!use_stdout) System.out.println("Reading input file...");
             ArrayList<Seq> seqs;
-            if (use_stdin) {
+            if (input_as_pairs) {
+                ArrayList<Pair<Pair<String, Seq>, Pair<String, Seq>>> pairs = read_seq_pairs();
+                tn93_pairs(pairs);
+                return;
+            }
+            else if (use_stdin) {
                 seqs = read_fasta_stdin();
             } else {
                 seqs = read_fasta(inputFile);
@@ -136,19 +157,20 @@ public class TN93 extends Observable {
     }
 
     public void tn93(ArrayList<Seq> seqs) {
-        if (cores > 1) {
+        if (cores > 1)
             tn93_parallel(seqs);
-        } else {
+        else 
             tn93_sequential(seqs);
-        }
     }
     
+    public void tn93_pairs(ArrayList<Pair<Pair<String, Seq>, Pair<String, Seq>>> pairs) {
+        if (cores > 1)
+            tn93_parallel_pairs(pairs);
+        else 
+            tn93_sequential_pairs(pairs);
+    }
 
     public void tn93_parallel(ArrayList<Seq> seqs){
-        if ("resolve".equals(ambiguityHandling)) {
-            ambig_fractions = count_ambiguities(seqs);
-        }
-
         if (cores >= seqs.size()) {
             cores = seqs.size()-1;
         }
@@ -252,9 +274,6 @@ public class TN93 extends Observable {
     }
 
     public void tn93_sequential(ArrayList<Seq> seqs) {
-        if ("resolve".equals(ambiguityHandling)) {
-            ambig_fractions = count_ambiguities(seqs);
-        }
         PrintWriter f = null;
         if (use_stdout)
             System.out.println("Source,Target,Distance");
@@ -275,6 +294,7 @@ public class TN93 extends Observable {
             if (!use_stdout) System.out.print("Processing " + i + " of " + seqs.size() + " sequences...\r");
             for (int j = 0; j < i; ++ j) {
                 double distance = tn93(seqs.get(i), seqs.get(j));
+                if (distance == -0) distance = 0;
                 if (distance <= edgeThreshold) {
                     if (use_stdout)
                         System.out.println(seqs.get(i).getName() + "," + seqs.get(j).getName() + "," + distance);
@@ -302,20 +322,169 @@ public class TN93 extends Observable {
         return;
     }
 
-
-    private HashMap<Seq,Double> count_ambiguities(ArrayList<Seq> seqs) {
-        HashMap<Seq,Double> ambig_fractions = new HashMap<>();
-        for (Seq seq : seqs) {
-            int ambigs_count = 0;
-            for (int i = 0; i < seq.getSeq_enc().length; ++i) {
-                int enc = seq.getSeq_enc()[i];
-                if (enc > 4 && enc != 17) {
-                    ambigs_count++;
-                }
-            }
-            ambig_fractions.put(seq, ambigs_count / (double) seq.getEffective_len());
+    public void tn93_parallel_pairs(ArrayList<Pair<Pair<String, Seq>, Pair<String, Seq>>> pairs) {
+        if (cores >= pairs.size()) {
+            cores = pairs.size()-1;
         }
-        return ambig_fractions;
+
+        if (!use_stdout) System.out.println("Creating thread pool with " + cores + " threads...");
+        ExecutorService executor = Executors.newFixedThreadPool(cores);
+        List<Future<Triplet<Integer, Integer, Double>>> futures = new ArrayList<>();
+        AtomicReference<PrintWriter> writerRef = new AtomicReference<>();
+
+
+        if (use_stdout) 
+            System.out.println("Source,Target,Distance");
+        else {
+            try {
+                writerRef.set(new PrintWriter(new BufferedWriter(new FileWriter(outputFile))));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            writerRef.get().println("Source,Target,Distance");
+        }
+
+        long pairs_count = pairs.size();
+        long current_pair = 0;
+        long startTime = System.nanoTime(), estimatedTime;
+
+        if (!use_stdout) System.out.println("Submitting jobs...");
+
+        for (Pair<Pair<String, Seq>, Pair<String, Seq>> pair : pairs) {
+            final Pair<String, Seq> seq1 = pair.first;
+            final Pair<String, Seq> seq2 = pair.second;
+            futures.add(executor.submit( () -> {
+                double d = tn93(seq1.second, seq2.second);
+                if (d == -0) d = 0;
+                if (d < this.edgeThreshold)
+                    if (use_stdout)
+                        System.out.println(String.format("%s,%s,%f", seq1.first, seq2.first, d));
+                    else
+                        writerRef.get().println(String.format("%s,%s,%f", seq1.first, seq2.first, d));
+                return new Triplet<>(0, 0, d);
+            }));
+
+            if (futures.size() > 1000 || pairs_count < 1000 ) {
+                for (Future<Triplet<Integer, Integer, Double>> future : futures) {
+                    try {
+                        future.get();
+                    }
+                    catch (InterruptedException | ExecutionException e) {
+                        e.printStackTrace();
+                    }
+    
+                    current_pair++;
+                    if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0 ) {
+                        estimatedTime = System.nanoTime() - startTime;
+                        int percCompleted = (int) (current_pair*100/pairs_count);
+                        if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
+                        if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+                        if (!use_stdout) System.out.println(" sec                                ");
+                        setChanged();
+                        notifyObservers(percCompleted);
+                    } 
+                }
+                futures.clear();
+            }
+        }
+
+        for (Future<Triplet<Integer, Integer, Double>> future : futures) {
+            try {
+                future.get();         
+            }
+            catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+
+            current_pair++;
+            if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
+                estimatedTime = System.nanoTime() - startTime;
+                int percCompleted = (int) (current_pair*100/pairs_count);
+                if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
+                if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+                if (!use_stdout) System.out.println(" sec                                ");
+                setChanged();
+                notifyObservers(percCompleted);
+            } 
+        }
+
+        executor.shutdown();
+        if (!use_stdout) {
+            writerRef.get().flush();
+            writerRef.get().close();
+        }
+        setChanged();
+        notifyObservers(100);
+        return;
+    }
+
+
+
+    public void tn93_sequential_pairs(ArrayList<Pair<Pair<String, Seq>, Pair<String, Seq>>> pairs) {
+        PrintWriter f = null;
+        if (use_stdout)
+            System.out.println("Source,Target,Distance");
+        else {
+            try {
+                f = new PrintWriter(new BufferedWriter(new FileWriter(outputFile)));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            f.println("Source,Target,Distance");
+        }
+          
+        long pairs_count = pairs.size();
+        long current_pair = 0;
+        long startTime = System.nanoTime(), estimatedTime;
+
+
+        for (Pair<Pair<String, Seq>, Pair<String, Seq>> pair : pairs) {
+            final Pair<String, Seq> seq1 = pair.first;
+            final Pair<String, Seq> seq2 = pair.second;
+            double distance = tn93(seq1.second, seq2.second);
+            if (distance == -0) distance = 0;
+            if (distance <= edgeThreshold) {
+                if (use_stdout)
+                    System.out.println(seq1.first + "," + seq2.first + "," + distance);
+                else
+                    f.println(seq1.first + "," + seq2.first + "," + distance);
+            }
+            current_pair++;
+            if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
+                estimatedTime = System.nanoTime() - startTime;
+                int percCompleted = (int) (current_pair*100/pairs_count);
+                if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
+                if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+                if (!use_stdout) System.out.println(" sec                                ");
+                setChanged();
+                notifyObservers(percCompleted);
+            }
+        }
+        if (!use_stdout) {
+            f.flush();
+            f.close();
+        }
+        setChanged();
+        notifyObservers(100);
+        return;
+    }
+
+
+    private double count_ambig_fraction(Seq s1, Seq s2) {
+        int ambigs_count = 0;
+        int scan_length = Math.min(s1.getSeq_enc().length, s2.getSeq_enc().length);
+        for (int i = 0; i < scan_length; ++i) {
+            int c1 = s1.getSeq_enc()[i];
+            int c2 = s2.getSeq_enc()[i];
+            if (c1 > 4 && c1 != 17 && c2 > 4 && c2 != 17) { // if both seqs contain ambiguity at this position
+                ambigs_count++;
+            }
+        }
+        int shared_start = Math.max(s1.effective_start, s2.effective_start);
+        int shared_end = Math.min(s1.effective_end, s2.effective_end);
+        int shared_len = shared_end - shared_start + 1;
+
+        return ambigs_count / (double) shared_len;
     }
 
     private double tn93(Seq s1, Seq s2) {
@@ -367,7 +536,7 @@ public class TN93 extends Observable {
         double nucl_pair_counts[][] = new double[4][4];
         if ("resolve".equals(ambiguityHandling)) {
             if (max_ambiguity_fraction != -1)
-                if (ambig_fractions.get(s1) > max_ambiguity_fraction || ambig_fractions.get(s2) > max_ambiguity_fraction)
+                if (count_ambig_fraction(s1, s2) > max_ambiguity_fraction)
                     return countNucl_average(s1.getSeq_enc(), s2.getSeq_enc(), nucl_pair_counts);
             return countNucl_resolve(s1.getSeq_enc(), s2.getSeq_enc(), nucl_pair_counts);
         }
@@ -380,7 +549,7 @@ public class TN93 extends Observable {
         else
         {
             if (max_ambiguity_fraction != -1)
-                if (ambig_fractions.get(s1) > max_ambiguity_fraction || ambig_fractions.get(s2) > max_ambiguity_fraction)
+                if (count_ambig_fraction(s1, s2) > max_ambiguity_fraction)
                     return countNucl_average(s1.getSeq_enc(), s2.getSeq_enc(), nucl_pair_counts);
             return countNucl_resolve(s1.getSeq_enc(), s2.getSeq_enc(), nucl_pair_counts);
         }
@@ -617,10 +786,42 @@ public class TN93 extends Observable {
         return a;
     }
 
+
     private static ArrayList<Seq> read_fasta_stdin() {
         Scanner sc = new Scanner(System.in);
         ArrayList<Seq> a = read_seqs(sc);
         sc.close();
         return a;
+    }
+
+
+    private static ArrayList<Pair<Pair<String, Seq>, Pair<String, Seq>>> read_seq_pairs() {
+        // This supports reading pairs of sequences from stdin
+        // Expected format:
+        // seq1_name, seq1, seq2_name, seq2\n
+
+        Scanner sc = new Scanner(System.in);
+        ArrayList<Pair<Pair<String, Seq>, Pair<String, Seq>>> pairs = new ArrayList<>();
+
+        while(sc.hasNextLine()) {
+            String line = sc.nextLine().trim();
+            if(line.length() == 0) continue;
+            String[] fields = line.split(",");
+            if (fields.length != 4) {
+                System.err.println("Error: expected 4 fields per line, got " + fields.length);
+                System.exit(1);
+            }
+            String name1 = fields[0];
+            String seq1 = fields[1];
+            String name2 = fields[2];
+            String seq2 = fields[3];
+
+            pairs.add(new Pair<Pair<String, Seq>, Pair<String, Seq>>(
+                new Pair<String, Seq>(name1, new Seq(name1, seq1)),
+                new Pair<String, Seq>(name2, new Seq(name2, seq2))
+            ));
+        }
+        sc.close();
+        return pairs;
     }
 }

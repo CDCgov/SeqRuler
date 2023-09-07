@@ -34,6 +34,11 @@ public class SNP extends Observable {
     private boolean ignoreAllGaps = false;
     private boolean use_stdin = false;
     private boolean use_stdout = false;
+    private boolean input_as_pairs = false;
+
+    public void setInputAsPairs(boolean input_as_pairs) {
+        this.input_as_pairs = input_as_pairs;
+    }
 
     public void setUseStdin(boolean use_stdin) {
         this.use_stdin = use_stdin;
