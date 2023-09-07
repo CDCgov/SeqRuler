@@ -90,7 +90,7 @@ public class Main implements Runnable{
                     tn93.setUseStdout(true);
                 else
                     tn93.setOutputFile(outputFile);
-                System.out.println(ambiguityHandling);
+    
                 tn93.setAmbiguityHandling(ambiguityHandling);
                 tn93.setMaxAmbiguityFraction(max_ambiguity_fraction);
                 tn93.setCores(cores);
