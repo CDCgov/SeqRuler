@@ -37,7 +37,7 @@ public class Main implements Runnable{
     @CommandLine.Option(names={"-r", "--run-server"}, description="run jetty server", defaultValue = "false")
     private boolean is_server;
     @CommandLine.Option(names={"-t", "--edge-threshold"},
-            description="edges above the threshold are not reported in output", defaultValue = "1.0")
+            description="edges above the threshold are not reported in output. {Default: 1.0}", defaultValue = "1.0")
     private String edgeThresholdString;
     @CommandLine.Option(names={"-a", "--ambiguity", "--ambiguities"},
             description="How to handle ambiguous nucleotides. One of [resolve, average, gapmm, skip]", defaultValue = "resolve")
@@ -46,7 +46,7 @@ public class Main implements Runnable{
             description="Maximum allowable fraction of ambiguities allowed for 'resolve' mode. If exceeded, use 'average' mode.", defaultValue = "1.0")
     private float max_ambiguity_fraction;
     @CommandLine.Option(names={"-c", "--cores"},
-            description="Number of cores to use for parallel processing.", defaultValue = "1")
+            description="Number of cores to use for parallel processing. Default: 1", defaultValue = "1")
     private int cores;
     @CommandLine.Option(names={"-g", "--ignore-terminal-gaps"},
             description="Ignore terminal gaps at beginning and end of sequences when calculating distances. [SNP only] Default: true")
@@ -54,6 +54,10 @@ public class Main implements Runnable{
     @CommandLine.Option(names={"-G", "--ignore-all-gaps"},
             description="Ignore all gaps when calculating distances. [SNP only] Default: false")
     private boolean ignoreAllGaps=false; //snp only
+    //an option to specify output format to have numbers in
+    @CommandLine.Option(names={"-e", "--enumerate_sequences"},
+            description="Enumerate sequences for output file, and produce additional map file giving integer to sequence name mapping. Default: false")
+    private boolean enumerate_sequences=false;
 
 
 
@@ -90,9 +94,11 @@ public class Main implements Runnable{
                     tn93.setUseStdout(true);
                 else
                     tn93.setOutputFile(outputFile);
+
     
                 tn93.setAmbiguityHandling(ambiguityHandling);
                 tn93.setMaxAmbiguityFraction(max_ambiguity_fraction);
+                tn93.setEnumerateSequences(enumerate_sequences);
                 tn93.setCores(cores);
                 tn93.tn93Fasta();
             }

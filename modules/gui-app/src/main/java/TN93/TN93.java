@@ -50,6 +50,8 @@ public class TN93 extends Observable {
     private boolean use_stdin = false;
     private boolean use_stdout = false;
     private boolean input_as_pairs = false;
+    private boolean enumerate_sequences = false;
+    private HashMap<Integer, String> map_index_to_name = new HashMap<Integer, String>();
 
     public void setEdgeThreshold(float edgeThreshold) {
         this.edgeThreshold = edgeThreshold;
@@ -61,6 +63,10 @@ public class TN93 extends Observable {
 
     public void setUseStdout(boolean use_stdout) {
         this.use_stdout = use_stdout;
+    }
+
+    public void setEnumerateSequences(boolean enumerate_sequences) {
+        this.enumerate_sequences = enumerate_sequences;
     }
 
     public void setInputFile(File inputFile) {
@@ -208,12 +214,20 @@ public class TN93 extends Observable {
                 
                 futures.add(executor.submit( () -> {
                     double d = tn93(seq1, seq2);
+                    String report = "";
                     if (d == -0) d = 0;
-                    if (d < this.edgeThreshold)
-                        if (use_stdout)
-                            System.out.println(String.format("%s,%s,%f", seq1.getName(), seq2.getName(), d));
+                    if (d < this.edgeThreshold){
+                        if (enumerate_sequences) {
+                            report = String.format("%d,%d,%f", row, col, d);
+                        }
                         else
-                            writerRef.get().println(String.format("%s,%s,%f", seq1.getName(), seq2.getName(), d));
+                            report = String.format("%s,%s,%f", seq1.getName(), seq2.getName(), d);
+
+                        if (use_stdout)
+                            System.out.println(report);
+                        else
+                            writerRef.get().println(report);
+                    }
                     return new Triplet<>(row, col, d);
                 }));
 
@@ -268,6 +282,21 @@ public class TN93 extends Observable {
             writerRef.get().flush();
             writerRef.get().close();
         }
+
+        //output a mapfile between index and name
+        if (enumerate_sequences) {
+            try {
+                PrintWriter mapfile = new PrintWriter(new BufferedWriter(new FileWriter(outputFile + ".map")));
+                for (int i = 0; i < seqs.size(); ++i) {
+                    mapfile.println(i + "," + seqs.get(i).getName());
+                }
+                mapfile.flush();
+                mapfile.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
         setChanged();
         notifyObservers(100);
         return;
@@ -294,12 +323,20 @@ public class TN93 extends Observable {
             if (!use_stdout) System.out.print("Processing " + i + " of " + seqs.size() + " sequences...\r");
             for (int j = 0; j < i; ++ j) {
                 double distance = tn93(seqs.get(i), seqs.get(j));
+                String report = "";
+
                 if (distance == -0) distance = 0;
                 if (distance <= edgeThreshold) {
-                    if (use_stdout)
-                        System.out.println(seqs.get(i).getName() + "," + seqs.get(j).getName() + "," + distance);
+                    if (enumerate_sequences) {
+                        report = String.format("%d,%d,%f", i, j, distance);
+                        }
                     else
-                        f.println(seqs.get(i).getName() + "," + seqs.get(j).getName() + "," + distance);
+                        report = String.format("%s,%s,%f", seqs.get(i).getName(), seqs.get(j).getName(), distance);
+                    
+                    if (use_stdout)
+                        System.out.println(report);
+                    else
+                        f.println(report);
                 }
                 current_pair++;
                 if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
@@ -316,6 +353,20 @@ public class TN93 extends Observable {
         if (!use_stdout) {
             f.flush();
             f.close();
+        }
+
+        //output a mapfile between index and name
+        if (enumerate_sequences) {
+            try {
+                PrintWriter mapfile = new PrintWriter(new BufferedWriter(new FileWriter(outputFile + ".map")));
+                for (int i = 0; i < seqs.size(); ++i) {
+                    mapfile.println(i + "," + seqs.get(i).getName());
+                }
+                mapfile.flush();
+                mapfile.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         setChanged();
         notifyObservers(100);
@@ -767,6 +818,7 @@ public class TN93 extends Observable {
     public static ArrayList<Seq> read_seqs(Scanner sc) {
         ArrayList<Seq> seqs = new ArrayList<Seq>();
         String name="", seq="";
+        
         while(sc.hasNextLine()) {
             String line = sc.nextLine().trim();
             if(line.length() == 0) continue;
