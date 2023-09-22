@@ -476,15 +476,18 @@ public class TN93 extends Observable {
         for (int i = 0; i < scan_length; ++i) {
             int c1 = s1.getSeq_enc()[i];
             int c2 = s2.getSeq_enc()[i];
-            if (c1 > 4 && c1 != 17 && c2 > 4 && c2 != 17) { // if both seqs contain ambiguity at this position
+            boolean c1_is_ambig = c1 > 4 && c1 != 17;
+            boolean c2_is_ambig = c2 > 4 && c2 != 17;
+            if (c1_is_ambig || c2_is_ambig) {
                 ambigs_count++;
             }
         }
-        int shared_start = Math.max(s1.effective_start, s2.effective_start);
-        int shared_end = Math.min(s1.effective_end, s2.effective_end);
-        int shared_len = shared_end - shared_start + 1;
+        // int shared_start = Math.max(s1.effective_start, s2.effective_start);
+        // int shared_end = Math.min(s1.effective_end, s2.effective_end);
+        // int shared_len = shared_end - shared_start + 1;
 
-        return ambigs_count / (double) shared_len;
+        // return ambigs_count / (double) shared_len;
+        return ambigs_count / (double) scan_length;
     }
 
     private double tn93(Seq s1, Seq s2) {
