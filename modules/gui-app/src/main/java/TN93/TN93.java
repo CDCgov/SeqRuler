@@ -199,7 +199,7 @@ public class TN93 extends Observable {
         }
             
 
-        long pairs_count = (seqs.size() * seqs.size() - seqs.size())/2;
+        long total_pairs_to_compute = (seqs.size() * seqs.size() - seqs.size())/2;
         long current_pair = 0;
         long startTime = System.nanoTime(), estimatedTime;
 
@@ -231,7 +231,7 @@ public class TN93 extends Observable {
                     return new Triplet<>(row, col, d);
                 }));
 
-                if (futures.size() > 1000 || pairs_count < 1000 ) {
+                if (futures.size() > 1000 || total_pairs_to_compute < 1000 ) {
                     for (Future<Triplet<Integer, Integer, Double>> future : futures) {
                         try {
                             future.get();
@@ -241,16 +241,7 @@ public class TN93 extends Observable {
                         }
         
                         current_pair++;
-                        // There is some issue here when input has exactly 2 sequences
-                        if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0 ) {
-                            estimatedTime = System.nanoTime() - startTime;
-                            int percCompleted = (int) (current_pair*100/pairs_count);
-                            if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
-                            if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                            if (!use_stdout) System.out.println(" sec                                ");
-                            setChanged();
-                            notifyObservers(percCompleted);
-                        } 
+                        update_percent_complete(total_pairs_to_compute, current_pair, startTime); 
                     }
                     futures.clear();
                 }
@@ -266,15 +257,7 @@ public class TN93 extends Observable {
             }
 
             current_pair++;
-            if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
-                estimatedTime = System.nanoTime() - startTime;
-                int percCompleted = (int) (current_pair*100/pairs_count);
-                if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
-                if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                if (!use_stdout) System.out.println(" sec                                ");
-                setChanged();
-                notifyObservers(percCompleted);
-            } 
+            update_percent_complete(total_pairs_to_compute, current_pair, startTime); 
         }
 
         executor.shutdown();
@@ -315,7 +298,7 @@ public class TN93 extends Observable {
             f.println("Source,Target,Distance");
         }
           
-        long pairs_count = (seqs.size() * seqs.size() - seqs.size())/2;
+        long total_pairs_to_compute = (seqs.size() * seqs.size() - seqs.size())/2;
         long current_pair = 0;
         long startTime = System.nanoTime(), estimatedTime;
 
@@ -339,15 +322,7 @@ public class TN93 extends Observable {
                         f.println(report);
                 }
                 current_pair++;
-                if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
-                    estimatedTime = System.nanoTime() - startTime;
-                    int percCompleted = (int) (current_pair*100/pairs_count);
-                    if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
-                    if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                    if (!use_stdout) System.out.println(" sec                                ");
-                    setChanged();
-                    notifyObservers(percCompleted);
-                }
+                update_percent_complete(total_pairs_to_compute, current_pair, startTime);
             }
         }
         if (!use_stdout) {
@@ -395,7 +370,7 @@ public class TN93 extends Observable {
             writerRef.get().println("Source,Target,Distance");
         }
 
-        long pairs_count = pairs.size();
+        long total_pairs_to_compute = pairs.size();
         long current_pair = 0;
         long startTime = System.nanoTime(), estimatedTime;
 
@@ -415,7 +390,7 @@ public class TN93 extends Observable {
                 return new Triplet<>(0, 0, d);
             }));
 
-            if (futures.size() > 1000 || pairs_count < 1000 ) {
+            if (futures.size() > 1000 || total_pairs_to_compute < 1000 ) {
                 for (Future<Triplet<Integer, Integer, Double>> future : futures) {
                     try {
                         future.get();
@@ -425,15 +400,7 @@ public class TN93 extends Observable {
                     }
     
                     current_pair++;
-                    if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0 ) {
-                        estimatedTime = System.nanoTime() - startTime;
-                        int percCompleted = (int) (current_pair*100/pairs_count);
-                        if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
-                        if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                        if (!use_stdout) System.out.println(" sec                                ");
-                        setChanged();
-                        notifyObservers(percCompleted);
-                    } 
+                    update_percent_complete(total_pairs_to_compute, current_pair, startTime); 
                 }
                 futures.clear();
             }
@@ -448,15 +415,7 @@ public class TN93 extends Observable {
             }
 
             current_pair++;
-            if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
-                estimatedTime = System.nanoTime() - startTime;
-                int percCompleted = (int) (current_pair*100/pairs_count);
-                if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
-                if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                if (!use_stdout) System.out.println(" sec                                ");
-                setChanged();
-                notifyObservers(percCompleted);
-            } 
+            update_percent_complete(total_pairs_to_compute, current_pair, startTime); 
         }
 
         executor.shutdown();
@@ -468,7 +427,6 @@ public class TN93 extends Observable {
         notifyObservers(100);
         return;
     }
-
 
 
     public void tn93_sequential_pairs(ArrayList<Pair<Pair<String, Seq>, Pair<String, Seq>>> pairs) {
@@ -484,7 +442,7 @@ public class TN93 extends Observable {
             f.println("Source,Target,Distance");
         }
           
-        long pairs_count = pairs.size();
+        long total_pairs_to_compute = pairs.size();
         long current_pair = 0;
         long startTime = System.nanoTime(), estimatedTime;
 
@@ -501,15 +459,7 @@ public class TN93 extends Observable {
                     f.println(seq1.first + "," + seq2.first + "," + distance);
             }
             current_pair++;
-            if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
-                estimatedTime = System.nanoTime() - startTime;
-                int percCompleted = (int) (current_pair*100/pairs_count);
-                if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
-                if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                if (!use_stdout) System.out.println(" sec                                ");
-                setChanged();
-                notifyObservers(percCompleted);
-            }
+            update_percent_complete(total_pairs_to_compute, current_pair, startTime);
         }
         if (!use_stdout) {
             f.flush();
@@ -518,6 +468,27 @@ public class TN93 extends Observable {
         setChanged();
         notifyObservers(100);
         return;
+    }
+
+    private void update_percent_complete(long total_pairs_to_compute, long current_pair, long startTime) {
+        long estimatedTime;
+        int percCompleted;
+
+        if (total_pairs_to_compute < 100) {
+            estimatedTime = System.nanoTime() - startTime;
+            percCompleted = (int) (current_pair / total_pairs_to_compute);
+        } else if (current_pair % (total_pairs_to_compute / 100) == 0) {
+            estimatedTime = System.nanoTime() - startTime;
+            percCompleted = (int) (current_pair*100/total_pairs_to_compute);
+        }
+        else 
+            return;
+
+        if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
+        if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+        if (!use_stdout) System.out.println(" sec                                ");
+        setChanged();
+        notifyObservers(percCompleted);
     }
 
 

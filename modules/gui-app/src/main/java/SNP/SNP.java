@@ -124,15 +124,7 @@ public class SNP extends Observable {
                         f.println(String.format("%s,%s,%d", seqs.get(i).getName(), seqs.get(j).getName(), d));
                 }
                 ++current_pair;
-                if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
-                    estimatedTime = System.nanoTime() - startTime;
-                    int percCompleted = (int) (current_pair*100/pairs_count);
-                    if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
-                    if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                    if (!use_stdout) System.out.println(" sec                                ");
-                    setChanged();
-                    notifyObservers(percCompleted);
-                }
+                update_percent_complete(pairs_count, current_pair, startTime);
             }
         }
         if (!use_stdout) {
@@ -198,15 +190,7 @@ public class SNP extends Observable {
                             e.printStackTrace();
                         }
                         ++current_pair;
-                        if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
-                            estimatedTime = System.nanoTime() - startTime;
-                            int percCompleted = (int) (current_pair*100/pairs_count);
-                            if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
-                            if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                            if (!use_stdout) System.out.println(" sec                                ");
-                            setChanged();
-                            notifyObservers(percCompleted);
-                        }
+                        update_percent_complete(pairs_count, current_pair, startTime);
                     }
                     futures.clear();
                 }
@@ -220,15 +204,7 @@ public class SNP extends Observable {
                 e.printStackTrace();
             }
             ++current_pair;
-            if (pairs_count < 100 || current_pair % (pairs_count / 100) == 0) {
-                estimatedTime = System.nanoTime() - startTime;
-                int percCompleted = (int) (current_pair*100/pairs_count);
-                if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
-                if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
-                if (!use_stdout) System.out.println(" sec                                ");
-                setChanged();
-                notifyObservers(percCompleted);
-            }
+            update_percent_complete(pairs_count, current_pair, startTime);
         }
 
         executor.shutdown();
@@ -267,6 +243,27 @@ public class SNP extends Observable {
             }
         }
         return d;
+    }
+
+    private void update_percent_complete(long total_pairs_to_compute, long current_pair, long startTime) {
+        long estimatedTime;
+        int percCompleted;
+
+        if (total_pairs_to_compute < 100) {
+            estimatedTime = System.nanoTime() - startTime;
+            percCompleted = (int) (current_pair / total_pairs_to_compute);
+        } else if (current_pair % (total_pairs_to_compute / 100) == 0) {
+            estimatedTime = System.nanoTime() - startTime;
+            percCompleted = (int) (current_pair*100/total_pairs_to_compute);
+        }
+        else 
+            return;
+
+        if (!use_stdout) System.out.print(String.format("%d%% completed in ", percCompleted));
+        if (!use_stdout) System.out.print(TimeUnit.SECONDS.convert(estimatedTime, TimeUnit.NANOSECONDS));
+        if (!use_stdout) System.out.println(" sec                                ");
+        setChanged();
+        notifyObservers(percCompleted);
     }
 
     private static int findBeginningGapsEnd(String seq) {
