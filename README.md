@@ -1,5 +1,9 @@
 # SeqRuler
 <div align='center'>
+  <img src="https://github.com/CDCgov/SeqRuler/assets/36117344/e966ff6b-27f4-4521-9e54-eb7d84f3f5e0">
+</div>
+
+<div align='center'>
   <img width=80% height=80% alt="Screenshot 2023-05-19 at 2 41 18 PM" src="https://github.com/CDCgov/SeqRuler/assets/36117344/f7afeaad-4b7f-43e8-9d32-992dbf1baebc">
 </div>
 
