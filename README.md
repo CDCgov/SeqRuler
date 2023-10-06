@@ -1,20 +1,22 @@
 # SeqRuler
-<div align='center'>
+
+<span align='center'>
   <img src="https://github.com/CDCgov/SeqRuler/assets/36117344/e966ff6b-27f4-4521-9e54-eb7d84f3f5e0">
-</div>
+</span>
+
+<p align='center'>A simple GUI interface for calculating TN93 distance or SNP (Hamming) distance between all sequences in an input fasta file.</p>
+
 
 <div align='center'>
   <img width=80% height=80% alt="Screenshot 2023-05-19 at 2 41 18 PM" src="https://github.com/CDCgov/SeqRuler/assets/36117344/f7afeaad-4b7f-43e8-9d32-992dbf1baebc">
 </div>
 
-GUI interface for calculating TN93 distance or SNP (Hamming) distance between all sequences in the input fasta file.
-
-## Download or Compilation
+## Download
 
 - Download:
 [SeqRuler.jar](https://github.com/CDCgov/SeqRuler/releases/download/v3.5/SeqRuler.jar)
 
-
+## Or compile from source
 - Compilation:
 ```bash
 mvn clean install
@@ -29,17 +31,19 @@ java -jar SeqRuler.jar
 ## Help
 
 ```bash
-java -jar SeqRuler.jar -h
-                                    
-Usage: SeqRuler [-gGhprsSV] [-a=<ambiguityHandling>] [-c=<cores>]
+Usage: SeqRuler [-egGhprsSV] [-a=<ambiguityHandling>] [-c=<cores>]
                 [-d=<distanceMethod>] [-f=<max_ambiguity_fraction>] [-i=FILE]
                 [-o=FILE] [-t=<edgeThresholdString>]
   -a, --ambiguity, --ambiguities=<ambiguityHandling>
                           How to handle ambiguous nucleotides. One of [resolve,
                             average, gapmm, skip]
-  -c, --cores=<cores>     Number of cores to use for parallel processing.
+  -c, --cores=<cores>     Number of cores to use for parallel processing. Default: 1
   -d, --distance-method=<distanceMethod>
                           distance metric to use. One of [TN93, SNP]. Default: TN93
+  -e, --enumerate_sequences
+                          Enumerate sequences for output file, and produce
+                            additional map file giving integer to sequence name
+                            mapping. Default: false
   -f, --fraction=<max_ambiguity_fraction>
                           Maximum allowable fraction of ambiguities allowed for
                             'resolve' mode. If exceeded, use 'average' mode.
@@ -59,6 +63,7 @@ Usage: SeqRuler [-gGhprsSV] [-a=<ambiguityHandling>] [-c=<cores>]
   -S, --stdout            write distances to stdout. Alternative to writing to a
                             file (-o)
   -t, --edge-threshold=<edgeThresholdString>
-                          edges above the threshold are not reported in output
+                          edges above the threshold are not reported in output.
+                            {Default: 1.0}
   -V, --version           Print version information and exit.
 ```
