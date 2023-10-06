@@ -199,7 +199,7 @@ public class TN93 extends Observable {
         }
             
 
-        long total_pairs_to_compute = (seqs.size() * seqs.size() - seqs.size())/2;
+        long total_pairs_to_compute = ((long) seqs.size() * seqs.size() - seqs.size())/2;
         long current_pair = 0;
         long startTime = System.nanoTime(), estimatedTime;
 

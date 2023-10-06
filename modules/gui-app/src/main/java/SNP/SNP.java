@@ -98,7 +98,7 @@ public class SNP extends Observable {
 
     public void snp_sequential(ArrayList<Seq> seqs) {
         //sequential version
-        long pairs_count = (seqs.size() * (seqs.size() - 1)) / 2;
+        long pairs_count = ((long) seqs.size() * (seqs.size() - 1)) / 2;
         long current_pair = 0;
         long startTime = System.nanoTime(), estimatedTime;
 
