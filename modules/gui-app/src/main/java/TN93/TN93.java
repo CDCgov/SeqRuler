@@ -492,9 +492,10 @@ public class TN93 extends Observable {
     }
 
 
-    private double count_ambig_fraction(Seq s1, Seq s2) {
+    private boolean exceeds_ambig_threshold(Seq s1, Seq s2, double max_ambiguity_fraction) {
         int ambigs_count = 0;
         int scan_length = Math.min(s1.getSeq_enc().length, s2.getSeq_enc().length);
+        int total_non_gap = 0;
         for (int i = 0; i < scan_length; ++i) {
             int c1 = s1.getSeq_enc()[i];
             int c2 = s2.getSeq_enc()[i];
@@ -503,13 +504,11 @@ public class TN93 extends Observable {
             if (c1_is_ambig || c2_is_ambig) {
                 ambigs_count++;
             }
+            else if (!c1_is_ambig && !c2_is_ambig) {
+                total_non_gap++;
+            }
         }
-        // int shared_start = Math.max(s1.effective_start, s2.effective_start);
-        // int shared_end = Math.min(s1.effective_end, s2.effective_end);
-        // int shared_len = shared_end - shared_start + 1;
-
-        // return ambigs_count / (double) shared_len;
-        return ambigs_count / (double) scan_length;
+        return total_non_gap * max_ambiguity_fraction <= ambigs_count;
     }
 
     private double tn93(Seq s1, Seq s2) {
@@ -561,7 +560,7 @@ public class TN93 extends Observable {
         double nucl_pair_counts[][] = new double[4][4];
         if ("resolve".equals(ambiguityHandling)) {
             if (max_ambiguity_fraction != -1)
-                if (count_ambig_fraction(s1, s2) > max_ambiguity_fraction)
+                if (exceeds_ambig_threshold(s1, s2, max_ambiguity_fraction))
                     return countNucl_average(s1.getSeq_enc(), s2.getSeq_enc(), nucl_pair_counts);
             return countNucl_resolve(s1.getSeq_enc(), s2.getSeq_enc(), nucl_pair_counts);
         }
@@ -574,7 +573,7 @@ public class TN93 extends Observable {
         else
         {
             if (max_ambiguity_fraction != -1)
-                if (count_ambig_fraction(s1, s2) > max_ambiguity_fraction)
+                if (exceeds_ambig_threshold(s1, s2, max_ambiguity_fraction))
                     return countNucl_average(s1.getSeq_enc(), s2.getSeq_enc(), nucl_pair_counts);
             return countNucl_resolve(s1.getSeq_enc(), s2.getSeq_enc(), nucl_pair_counts);
         }
