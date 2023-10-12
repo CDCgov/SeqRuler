@@ -504,7 +504,7 @@ public class TN93 extends Observable {
             if (c1_is_ambig || c2_is_ambig) {
                 ambigs_count++;
             }
-            else if (!c1_is_ambig && !c2_is_ambig) {
+            else if (!c1_is_ambig && !c2_is_ambig && c1 != 17 && c2 != 17) {
                 total_non_gap++;
             }
         }
