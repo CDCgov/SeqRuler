@@ -37,7 +37,7 @@ public class Main implements Runnable{
     @CommandLine.Option(names={"-r", "--run-server"}, description="run jetty server", defaultValue = "false")
     private boolean is_server;
     @CommandLine.Option(names={"-t", "--edge-threshold"},
-            description="edges above the threshold are not reported in output. {Default: 1.0}", defaultValue = "1.0")
+            description="edges above the threshold are not reported in output. {Default: 1.0 (TN93), inf (SNP)}", defaultValue = "default")
     private String edgeThresholdString;
     @CommandLine.Option(names={"-a", "--ambiguity", "--ambiguities"},
             description="How to handle ambiguous nucleotides. One of [resolve, average, gapmm, skip]", defaultValue = "resolve")
@@ -79,6 +79,16 @@ public class Main implements Runnable{
         else {
             if(distanceMethod == null) distanceMethod = "TN93";
             distanceMethod = distanceMethod.toUpperCase();
+
+            if(edgeThresholdString == "default") {
+                if("TN93".equals(distanceMethod)) {
+                    edgeThresholdString = "1.0";
+                }
+                else if("SNP".equals(distanceMethod)) {
+                    edgeThresholdString = "Infinity";
+                }
+            }
+
             if("TN93".equals(distanceMethod)) {
                 TN93 tn93 = new TN93();
                 tn93.setEdgeThreshold(Float.parseFloat(edgeThresholdString));
@@ -278,12 +288,17 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         JPanel gapHandlingPanel = new JPanel();
         gapHandlingPanel.setLayout(new GridLayout(1, 2));
         gapHandlingPanel.setBorder(BorderFactory.createTitledBorder("Gap Handling"));
-        ignoreTerminalGapsCheckbox = new JCheckBox("Ignore terminal gaps", true);
-        ignoreTerminalGapsCheckbox.setToolTipText("Gaps at the beginning and end of sequences don't contribue to distance");
-        gapHandlingPanel.add(ignoreTerminalGapsCheckbox);
+
         ignoreAllGapsCheckbox = new JCheckBox("Ignore all gaps", true);
         ignoreAllGapsCheckbox.setToolTipText("Gaps don't contribute to distance");
         gapHandlingPanel.add(ignoreAllGapsCheckbox);
+
+        ignoreTerminalGapsCheckbox = new JCheckBox("Ignore terminal gaps", true);
+        ignoreTerminalGapsCheckbox.setToolTipText("Gaps at the beginning and end of sequences don't contribue to distance");
+        ignoreTerminalGapsCheckbox.setEnabled(false);
+
+        gapHandlingPanel.add(ignoreTerminalGapsCheckbox);
+
 
         resolveBut.addActionListener(new ActionListener() {
             @Override

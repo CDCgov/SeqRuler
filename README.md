@@ -64,6 +64,6 @@ Usage: SeqRuler [-egGhprsSV] [-a=<ambiguityHandling>] [-c=<cores>]
                             file (-o)
   -t, --edge-threshold=<edgeThresholdString>
                           edges above the threshold are not reported in output.
-                            {Default: 1.0}
+                            {Default: 1.0 (TN93), inf (SNP)}
   -V, --version           Print version information and exit.
 ```
