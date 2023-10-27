@@ -117,7 +117,7 @@ public class SNP extends Observable {
             if (!use_stdout) System.out.print("Processing " + i + " of " + seqs.size() + " sequences...\r");
             for (int j = 0; j < i; ++ j) {
                 int d = snp(seqs.get(i), seqs.get(j));
-                if ((float) d / seqs.get(i).getSeq().length() <= this.edgeThreshold) {
+                if (d <= this.edgeThreshold) {
                     if (use_stdout)
                         System.out.println(String.format("%s,%s,%d", seqs.get(i).getName(), seqs.get(j).getName(), d));
                     else
@@ -172,7 +172,7 @@ public class SNP extends Observable {
 
                 futures.add(executor.submit( () -> {
                     int d = snp(seq1, seq2);
-                    if ((float) d / L <= this.edgeThreshold) {
+                    if (d <= this.edgeThreshold) {
                         if (use_stdout)
                             System.out.println(String.format("%s,%s,%d", seq1.getName(), seq2.getName(), d));
                         else

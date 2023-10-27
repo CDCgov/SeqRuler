@@ -281,7 +281,7 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         ignoreTerminalGapsCheckbox = new JCheckBox("Ignore terminal gaps", true);
         ignoreTerminalGapsCheckbox.setToolTipText("Gaps at the beginning and end of sequences don't contribue to distance");
         gapHandlingPanel.add(ignoreTerminalGapsCheckbox);
-        ignoreAllGapsCheckbox = new JCheckBox("Ignore all gaps", false);
+        ignoreAllGapsCheckbox = new JCheckBox("Ignore all gaps", true);
         ignoreAllGapsCheckbox.setToolTipText("Gaps don't contribute to distance");
         gapHandlingPanel.add(ignoreAllGapsCheckbox);
 
@@ -314,6 +314,7 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
             public void actionPerformed(ActionEvent e) {
                 runBut.setText("Run TN93");
                 runBut.setActionCommand("runTN93");
+                edgeThresholdField.setText("0.015");
                 remove(gapHandlingPanel);
                 add(ambigsPanel, BorderLayout.CENTER);
                 revalidate();
@@ -330,6 +331,7 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
                 add(gapHandlingPanel, BorderLayout.CENTER);
                 runBut.setText("Run SNP");
                 runBut.setActionCommand("runSNP");
+                edgeThresholdField.setText("15");
                 revalidate();
                 repaint();
                 frame.pack();
@@ -337,7 +339,7 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         });
 
 
-
+        // grey out ignore terminal gaps if ignore all gaps is selected 
         ignoreAllGapsCheckbox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
