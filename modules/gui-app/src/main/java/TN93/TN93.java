@@ -187,9 +187,7 @@ public class TN93 extends Observable {
         AtomicReference<PrintWriter> writerRef = new AtomicReference<>();
 
 
-        if (use_stdout) 
-            System.out.println("Source,Target,Distance");
-        else {
+        if (!use_stdout){
             try {
                 writerRef.set(new PrintWriter(new BufferedWriter(new FileWriter(outputFile))));
             } catch (IOException e) {
@@ -504,7 +502,7 @@ public class TN93 extends Observable {
             if (c1_is_ambig || c2_is_ambig) {
                 ambigs_count++;
             }
-            else if (c1 != 17 && c2 != 17) {
+            if (c1 != 17 && c2 != 17) {
                 total_non_gap++;
             }
         }

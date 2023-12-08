@@ -48,6 +48,9 @@ public class Main implements Runnable{
     @CommandLine.Option(names={"-c", "--cores"},
             description="Number of cores to use for parallel processing. Default: 1", defaultValue = "1")
     private int cores;
+    @CommandLine.Option(names={"-n", "--ignore-ambiguities"},
+            description="Ignore ambiguities when calculating distances. [SNP only] Default: true")
+    private boolean ignoreAmbiguities=true; //snp only
     @CommandLine.Option(names={"-g", "--ignore-terminal-gaps"},
             description="Ignore terminal gaps at beginning and end of sequences when calculating distances. [SNP only] Default: true")
     private boolean ignoreTerminalGaps=true; //snp only
@@ -80,7 +83,7 @@ public class Main implements Runnable{
             if(distanceMethod == null) distanceMethod = "TN93";
             distanceMethod = distanceMethod.toUpperCase();
 
-            if(edgeThresholdString == "default") {
+            if("default".equals(edgeThresholdString)) {
                 if("TN93".equals(distanceMethod)) {
                     edgeThresholdString = "1.0";
                 }
@@ -129,6 +132,8 @@ public class Main implements Runnable{
 
                 snp.setEdgeThreshold(Float.parseFloat(edgeThresholdString));
                 snp.setCores(cores);
+                snp.setIgnoreAmbiguities(ignoreAmbiguities);
+                snp.setIgnoreAllGaps(ignoreAllGaps);
                 snp.setIgnoreTerminalGaps(ignoreTerminalGaps);
                 snp.snpFasta();
             }
@@ -182,8 +187,10 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
     private JLabel maxEdgeThresholdLabel, maxAmbiguityFractionLabel;
     private JCheckBox useMaxCoresCheckbox;
     private JTextField numCoresField;
+    private JCheckBox ignoreAmbiguitiesCheckbox;
     private JCheckBox ignoreTerminalGapsCheckbox;
     private JCheckBox ignoreAllGapsCheckbox;
+
 
 
     private File fastaFile, edgeListFile;
@@ -289,6 +296,12 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         gapHandlingPanel.setLayout(new GridLayout(1, 2));
         gapHandlingPanel.setBorder(BorderFactory.createTitledBorder("Gap Handling"));
 
+        //Ambiguity and gap handling options for SNP mode
+
+        ignoreAmbiguitiesCheckbox = new JCheckBox("Ignore ambiguities", true);
+        ignoreAmbiguitiesCheckbox.setToolTipText("Ambiguities don't contribute to distance");
+        gapHandlingPanel.add(ignoreAmbiguitiesCheckbox);
+
         ignoreAllGapsCheckbox = new JCheckBox("Ignore all gaps", true);
         ignoreAllGapsCheckbox.setToolTipText("Gaps don't contribute to distance");
         gapHandlingPanel.add(ignoreAllGapsCheckbox);
@@ -296,7 +309,6 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
         ignoreTerminalGapsCheckbox = new JCheckBox("Ignore terminal gaps", true);
         ignoreTerminalGapsCheckbox.setToolTipText("Gaps at the beginning and end of sequences don't contribue to distance");
         ignoreTerminalGapsCheckbox.setEnabled(false);
-
         gapHandlingPanel.add(ignoreTerminalGapsCheckbox);
 
 
@@ -494,18 +506,8 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
                     showMessageDialog(null, "Number of cores should be number!");
                 }
             }
-            if(ignoreTerminalGapsCheckbox.isSelected()) {
-                snp.setIgnoreTerminalGaps(true);
-            } else {
-                snp.setIgnoreTerminalGaps(false);
-            }
 
-            if(ignoreAllGapsCheckbox.isSelected()) {
-                snp.setIgnoreAllGaps(true);
-            } else {
-                snp.setIgnoreAllGaps(false);
-            }
-        
+            //driver code
             SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
                 @Override
                 protected Void doInBackground() {
@@ -546,11 +548,24 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
                 }
             }
 
+            if(ignoreAmbiguitiesCheckbox.isSelected()) {
+                snp.setIgnoreAmbiguities(true);
+            } else {
+                snp.setIgnoreAmbiguities(false);
+            }
+
             if(ignoreTerminalGapsCheckbox.isSelected()) {
                 snp.setIgnoreTerminalGaps(true);
             } else {
                 snp.setIgnoreTerminalGaps(false);
             }
+
+            if(ignoreAllGapsCheckbox.isSelected()) {
+                snp.setIgnoreAllGaps(true);
+            } else {
+                snp.setIgnoreAllGaps(false);
+            }
+            
 
             SwingWorker<Void,Void> worker = new SwingWorker<Void,Void>() {
                 @Override

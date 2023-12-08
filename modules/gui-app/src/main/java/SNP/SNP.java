@@ -30,6 +30,7 @@ public class SNP extends Observable {
     private File outputFile;
     private float edgeThreshold;
     private int cores = 1;
+    private boolean ignoreAmbiguities = true;
     private boolean ignoreTerminalGaps = true;
     private boolean ignoreAllGaps = false;
     private boolean use_stdin = false;
@@ -57,6 +58,9 @@ public class SNP extends Observable {
     }
     public void setCores(int cores) {
         this.cores = cores;
+    }
+    public void setIgnoreAmbiguities(boolean ignoreAmbiguities) {
+        this.ignoreAmbiguities = ignoreAmbiguities;
     }
     public void setIgnoreTerminalGaps(boolean ignoreTerminalGaps) {
         this.ignoreTerminalGaps = ignoreTerminalGaps;
@@ -219,10 +223,10 @@ public class SNP extends Observable {
 
     public int snp(Seq s1, Seq s2){
         int d = 0;
-        String seq1 = s1.getSeq();
-        String seq2 = s2.getSeq();
+        int[] seq1 = s1.getSeq_enc();
+        int[] seq2 = s2.getSeq_enc();
         int start_pos = 0;
-        int end_pos = Math.min(seq1.length(), seq2.length());
+        int end_pos = Math.min(seq1.length, seq2.length);
         if (this.ignoreTerminalGaps) {
             int s1s = findBeginningGapsEnd(seq1);
             int s1e = findTerminalGapsStart(seq1);
@@ -232,14 +236,10 @@ public class SNP extends Observable {
             end_pos = Math.min(s1e, s2e);
         }
         for (int i = start_pos; i < end_pos; ++i) {
-            if (seq1.charAt(i) != seq2.charAt(i)) {
-                if (this.ignoreAllGaps) {
-                    if (seq1.charAt(i) != '-' && seq2.charAt(i) != '-') {
-                        ++d;
-                    }
-                } else {
-                    ++d;
-                }
+            if (seq1[i] != seq2[i]) {
+                if (this.ignoreAllGaps && (seq1[i] == 17 || seq2[i] == 17)) continue;
+                if (this.ignoreAmbiguities && (seq1[i] > 4 || seq2[i] > 4)) continue;
+                d++;
             }
         }
         return d;
@@ -274,9 +274,25 @@ public class SNP extends Observable {
         return i;
     }
 
+    private static int findBeginningGapsEnd(int[] seq) {
+        int i = 0;
+        while (i < seq.length && seq[i] == 17) {
+            ++i;
+        }
+        return i;
+    }
+
     private static int findTerminalGapsStart(String seq) {
         int i = seq.length() - 1;
         while (i >= 0 && seq.charAt(i) == '-') {
+            --i;
+        }
+        return i;
+    }
+
+    private static int findTerminalGapsStart(int[] seq) {
+        int i = seq.length - 1;
+        while (i >= 0 && seq[i] == 17) {
             --i;
         }
         return i;
