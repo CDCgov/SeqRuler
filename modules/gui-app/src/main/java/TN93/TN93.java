@@ -676,24 +676,29 @@ public class TN93 extends Observable {
             }
             else {
                 if (c1 < 4) {
+                    // System.out.println("c1 = " + c1 + ", c2 = " + c2);
                     if (resolutionsCount[c2] > 0) {
                         for (int j=0; j<4; j++) {
                             if (resolutions[c2][j] == 1) {
                                 nucl_pair_counts[c1][j] += resolutionsCount[c2];
+                                // System.out.println("adding " + resolutionsCount[c2] + " to " + c1 + "," + j);
                             }
                         }
                     }
                 }
                 else if (c2 < 4){
+                    // System.out.println("c1 = " + c1 + ", c2 = " + c2);
                     if (resolutionsCount[c1] > 0) {
                         for (int j=0; j<4; j++) {
                             if (resolutions[c1][j] == 1) {
                                 nucl_pair_counts[j][c2] += resolutionsCount[c1];
+                                // System.out.println("adding " + resolutionsCount[c1] + " to " + j + "," + c2);
                             }
                         }
                     }
                 } 
                 else {
+                    // System.out.println("c1 = " + c1 + ", c2 = " + c2);
                     double norm = resolutionsCount[c1] * resolutionsCount[c2]; 
                     if (norm > 0.0) {
                         for (int j=0; j<4; j++) {
@@ -701,6 +706,7 @@ public class TN93 extends Observable {
                                 for (int k=0; k<4; k++) {
                                     if (resolutions[c2][k]==1) {
                                         nucl_pair_counts[j][k] += norm;
+                                        // System.out.println("adding " + norm + " to " + j + "," + k);
                                     }
                                 }
                             }
