@@ -387,14 +387,10 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
             }
 
             @Override
-            public void removeUpdate(DocumentEvent e) {
-                fastaFile = new File(fastaFile.getParent(), fastaTextField.getText());
-            }
+            public void removeUpdate(DocumentEvent e) {}
 
             @Override
-            public void changedUpdate(DocumentEvent e) {
-                fastaFile = new File(fastaFile.getParent(), fastaTextField.getText());
-            }
+            public void changedUpdate(DocumentEvent e) {}
         });
 
         edgeListTextField.getDocument().addDocumentListener(new DocumentListener() {
@@ -404,14 +400,10 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
             }
 
             @Override
-            public void removeUpdate(DocumentEvent e) {
-                edgeListFile = new File(edgeListFile.getParent(), edgeListTextField.getText());
-            }
+            public void removeUpdate(DocumentEvent e) {}
 
             @Override
-            public void changedUpdate(DocumentEvent e) {
-                edgeListFile = new File(edgeListFile.getParent(), edgeListTextField.getText());
-            }
+            public void changedUpdate(DocumentEvent e) {}
         });
 
         JPanel coresPanel = new JPanel();
@@ -469,6 +461,7 @@ class TN93_Panel extends JPanel implements ActionListener, Observer {
             }
         }
         else if("runTN93".equals(e.getActionCommand())) {
+            System.out.println(fastaFile.getAbsolutePath());
             if(fastaFile == null) {
                 showMessageDialog(null, "Specify an input Fasta file!");
                 return;
