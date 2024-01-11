@@ -468,6 +468,77 @@ public class TN93 extends Observable {
         return;
     }
 
+
+    private boolean resolveable(int c1, int c2) {
+        // like countNucl_resolve, but returns true if a non-average resolution is possible
+        if (c1 < 4 && c2 < 4) return false;
+        if (c1 == 17 || c2 == 17) return false;
+        if (c1 < 4) {
+            if (resolutions[c2][c1] == 1) {
+                return true;
+            }
+            for (int j=0; j<4; j++) {
+                if (resolutions[c2][j] == 1 && resolutions[c1][j] == 1) {
+                    return true;
+                }
+            }
+        }
+        else if (c2 < 4) {
+            if (resolutions[c1][c2] == 1) {
+                return true;
+            }
+            for (int j=0; j<4; j++) {
+                if (resolutions[c1][j] == 1 && resolutions[c2][j] == 1) {
+                    return true;
+                }
+            }
+        } 
+        else {
+            double norm = resolutionsCount[c1] * resolutionsCount[c2]; 
+            if (norm > 0.0) {
+                int matched = 0;
+                boolean[] positive_match = new boolean[4];
+                for (int j=0; j<4; j++) { 
+                    if (resolutions[c1][j] == 1 && resolutions[c2][j] == 1) {
+                        positive_match[j] = true;
+                        matched++;
+                    }
+                }
+                if (matched > 0) {
+                    return true;
+                }
+                for (int j=0; j<4; j++) {
+                    if (resolutions[c1][j] == 1) {
+                        for (int k=0; k<4; k++) {
+                            if (resolutions[c2][k] == 1) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean exceeds_ambig_threshold(Seq s1, Seq s2, double max_ambiguity_fraction) {
+        int ambigs_count = 0;
+        int scan_length = Math.min(s1.getSeq_enc().length, s2.getSeq_enc().length);
+        int total_non_gap = 0;
+        for (int i = 0; i < scan_length; ++i) {
+            int c1 = s1.getSeq_enc()[i];
+            int c2 = s2.getSeq_enc()[i];
+            if (resolveable(c1, c2)) {
+                ambigs_count++;
+            }
+            if (c1 != 17 && c2 != 17) {
+                total_non_gap++;
+            }
+        }
+        return total_non_gap * max_ambiguity_fraction <= ambigs_count;
+    }
+
+
     private void update_percent_complete(long total_pairs_to_compute, long current_pair, long startTime) {
         long estimatedTime;
         int percCompleted;
@@ -487,26 +558,6 @@ public class TN93 extends Observable {
         if (!use_stdout) System.out.println(" sec                                ");
         setChanged();
         notifyObservers(percCompleted);
-    }
-
-
-    private boolean exceeds_ambig_threshold(Seq s1, Seq s2, double max_ambiguity_fraction) {
-        int ambigs_count = 0;
-        int scan_length = Math.min(s1.getSeq_enc().length, s2.getSeq_enc().length);
-        int total_non_gap = 0;
-        for (int i = 0; i < scan_length; ++i) {
-            int c1 = s1.getSeq_enc()[i];
-            int c2 = s2.getSeq_enc()[i];
-            boolean c1_is_ambig = c1 > 4 && c1 != 17;
-            boolean c2_is_ambig = c2 > 4 && c2 != 17;
-            if (c1_is_ambig || c2_is_ambig) {
-                ambigs_count++;
-            }
-            if (c1 != 17 && c2 != 17) {
-                total_non_gap++;
-            }
-        }
-        return total_non_gap * max_ambiguity_fraction <= ambigs_count;
     }
 
     private double tn93(Seq s1, Seq s2) {
@@ -558,8 +609,8 @@ public class TN93 extends Observable {
         double nucl_pair_counts[][] = new double[4][4];
         if ("resolve".equals(ambiguityHandling)) {
             if (max_ambiguity_fraction != -1)
-                if (exceeds_ambig_threshold(s1, s2, max_ambiguity_fraction))
-                    return countNucl_average(s1.getSeq_enc(), s2.getSeq_enc(), nucl_pair_counts);
+                if (exceeds_ambig_threshold(s1, s2, max_ambiguity_fraction)){
+                    return countNucl_average(s1.getSeq_enc(), s2.getSeq_enc(), nucl_pair_counts);}
             return countNucl_resolve(s1.getSeq_enc(), s2.getSeq_enc(), nucl_pair_counts);
         }
         else if ("average".equals(ambiguityHandling))
