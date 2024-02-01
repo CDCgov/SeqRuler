@@ -469,55 +469,15 @@ public class TN93 extends Observable {
     }
 
 
-    private boolean resolveable(int c1, int c2) {
-        // like countNucl_resolve, but returns true if a non-average resolution is possible
-        if (c1 < 4 && c2 < 4) return false;
-        if (c1 == 17 || c2 == 17) return false;
-        if (c1 < 4) {
-            if (resolutions[c2][c1] == 1) {
-                return true;
-            }
-            for (int j=0; j<4; j++) {
-                if (resolutions[c2][j] == 1 && resolutions[c1][j] == 1) {
+    private boolean resolvable(int c1, int c2) {
+        if (c1 < 4 && c2 < 4)
+            return false;
+        if (c1 == 17 || c2 == 17)
+            return false;
+        else
+            for (int j = 0; j < 4; j++)
+                if (resolutions[c1][j] == 1 && resolutions[c2][j] == 1)
                     return true;
-                }
-            }
-        }
-        else if (c2 < 4) {
-            if (resolutions[c1][c2] == 1) {
-                return true;
-            }
-            for (int j=0; j<4; j++) {
-                if (resolutions[c1][j] == 1 && resolutions[c2][j] == 1) {
-                    return true;
-                }
-            }
-        } 
-        else {
-            double norm = resolutionsCount[c1] * resolutionsCount[c2]; 
-            if (norm > 0.0) {
-                int matched = 0;
-                boolean[] positive_match = new boolean[4];
-                for (int j=0; j<4; j++) { 
-                    if (resolutions[c1][j] == 1 && resolutions[c2][j] == 1) {
-                        positive_match[j] = true;
-                        matched++;
-                    }
-                }
-                if (matched > 0) {
-                    return true;
-                }
-                for (int j=0; j<4; j++) {
-                    if (resolutions[c1][j] == 1) {
-                        for (int k=0; k<4; k++) {
-                            if (resolutions[c2][k] == 1) {
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
         return false;
     }
 
@@ -528,7 +488,7 @@ public class TN93 extends Observable {
         for (int i = 0; i < scan_length; ++i) {
             int c1 = s1.getSeq_enc()[i];
             int c2 = s2.getSeq_enc()[i];
-            if (resolveable(c1, c2)) {
+            if (resolvable(c1, c2)) {
                 ambigs_count++;
             }
             if (c1 != 17 && c2 != 17) {
