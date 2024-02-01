@@ -16,7 +16,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
-@CommandLine.Command(name = "SeqRuler", mixinStandardHelpOptions = true, version = "3.0")
+@CommandLine.Command(name = "SeqRuler", mixinStandardHelpOptions = true, version = "4.4")
 public class Main implements Runnable{
     @CommandLine.Option(names={"-i", "--inFile"}, description="input file with sequences",
             paramLabel = "FILE")
@@ -157,7 +157,7 @@ public class Main implements Runnable{
 
     private static void createAndShowGUI() {
         //Create and set up the window.
-        JFrame frame = new JFrame("SeqRuler");
+        JFrame frame = new JFrame("SeqRuler" + " v4.4");
         JPanel mainPane = new JPanel();
         mainPane.setLayout(new BoxLayout(mainPane, BoxLayout.Y_AXIS));
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
