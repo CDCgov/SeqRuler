@@ -469,15 +469,13 @@ public class TN93 extends Observable {
     }
 
 
-    private boolean resolvable(int c1, int c2) {
+    private boolean is_ambig_pos(int c1, int c2) {
         if (c1 < 4 && c2 < 4)
             return false;
         if (c1 == 17 || c2 == 17)
             return false;
-        else
-            for (int j = 0; j < 4; j++)
-                if (resolutions[c1][j] == 1 && resolutions[c2][j] == 1)
-                    return true;
+        if (c1 > 4 && c2 > 4)
+            return true;
         return false;
     }
 
@@ -488,7 +486,7 @@ public class TN93 extends Observable {
         for (int i = 0; i < scan_length; ++i) {
             int c1 = s1.getSeq_enc()[i];
             int c2 = s2.getSeq_enc()[i];
-            if (resolvable(c1, c2)) {
+            if (is_ambig_pos(c1, c2)) {
                 ambigs_count++;
             }
             if (c1 != 17 && c2 != 17) {
