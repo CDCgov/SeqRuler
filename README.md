@@ -14,7 +14,7 @@
 ## Download
 
 - Download:
-[SeqRuler.jar](https://github.com/CDCgov/SeqRuler/releases/download/v4.4/SeqRuler.jar)
+[SeqRuler.jar](https://github.com/CDCgov/SeqRuler/releases/download/v4.4.1/SeqRuler.jar)
 
 ## Or compile from source
 - Compilation:
