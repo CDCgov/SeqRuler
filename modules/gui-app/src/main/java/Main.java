@@ -157,7 +157,7 @@ public class Main implements Runnable{
 
     private static void createAndShowGUI() {
         //Create and set up the window.
-        JFrame frame = new JFrame("SeqRuler" + " v4.4.1");
+        JFrame frame = new JFrame("SeqRuler" + " v4.4.2");
         JPanel mainPane = new JPanel();
         mainPane.setLayout(new BoxLayout(mainPane, BoxLayout.Y_AXIS));
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
