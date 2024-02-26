@@ -3,7 +3,9 @@ package TN93;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.*;
@@ -50,8 +52,7 @@ public class TN93 extends Observable {
     private boolean use_stdin = false;
     private boolean use_stdout = false;
     private boolean input_as_pairs = false;
-    private boolean enumerate_sequences = false;
-    private HashMap<Integer, String> map_index_to_name = new HashMap<Integer, String>();
+    private boolean enumerate_sequences = false; 
 
     public void setEdgeThreshold(float edgeThreshold) {
         this.edgeThreshold = edgeThreshold;
@@ -142,11 +143,40 @@ public class TN93 extends Observable {
             if (!use_stdout) System.out.println("Reading input file...");
             ArrayList<Seq> seqs;
             if (input_as_pairs) {
-                ArrayList<Pair<Pair<String, Seq>, Pair<String, Seq>>> pairs = read_seq_pairs();
-                tn93_pairs(pairs);
-                return;
-            }
-            else if (use_stdin) {
+            	BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            	String line =null;
+            	//Read as batch to prevent out of memeory errors.
+            	int batchSize=10000; //TODO - paramaterize this.
+                int count=0; 
+                ArrayList<Pair<Pair<String, Seq>, Pair<String, Seq>>> pairs = new ArrayList<>();
+                
+            	while ((line = br.readLine()) != null) {
+
+                    if(line.length() == 0) continue;
+                    String[] fields = line.split(",");
+                    if (fields.length != 4) {
+                        System.err.println("Error: expected 4 fields per line, got " + fields.length);
+                        System.exit(1);
+                    }
+                    String name1 = fields[0];
+                    String seq1 = fields[1];
+                    String name2 = fields[2];
+                    String seq2 = fields[3];
+
+                    pairs.add(new Pair<Pair<String, Seq>, Pair<String, Seq>>(
+                        new Pair<String, Seq>(name1, new Seq(name1, seq1)),
+                        new Pair<String, Seq>(name2, new Seq(name2, seq2))
+                    ));
+                	count++;
+                	
+                	if (count>=batchSize) {
+                    	tn93_pairs(pairs); //process this batch
+    	            	pairs = new ArrayList<>(); //reset pairs array
+    	            	count=0;//reset counts
+                	}
+            	} 
+        		return;
+            } else if (use_stdin) {
                 seqs = read_fasta_stdin();
             } else {
                 seqs = read_fasta(inputFile);
@@ -156,6 +186,9 @@ public class TN93 extends Observable {
         }
         catch(FileNotFoundException e) {
             e.printStackTrace();
+        }
+        catch(Exception e) {
+        	e.printStackTrace();
         }
         finally {
             if(f != null) f.close();
@@ -286,7 +319,7 @@ public class TN93 extends Observable {
     public void tn93_sequential(ArrayList<Seq> seqs) {
         PrintWriter f = null;
         if (use_stdout)
-            System.out.println("Source,Target,Distance");
+        	System.out.println("Source,Target,Distance");
         else {
             try {
                 f = new PrintWriter(new BufferedWriter(new FileWriter(outputFile)));
@@ -429,9 +462,8 @@ public class TN93 extends Observable {
 
     public void tn93_sequential_pairs(ArrayList<Pair<Pair<String, Seq>, Pair<String, Seq>>> pairs) {
         PrintWriter f = null;
-        if (use_stdout)
-            System.out.println("Source,Target,Distance");
-        else {
+        //only write headers if not using std out.
+        if (!use_stdout) {
             try {
                 f = new PrintWriter(new BufferedWriter(new FileWriter(outputFile)));
             } catch (IOException e) {
@@ -442,8 +474,7 @@ public class TN93 extends Observable {
           
         long total_pairs_to_compute = pairs.size();
         long current_pair = 0;
-        long startTime = System.nanoTime(), estimatedTime;
-
+        long startTime = System.nanoTime();
 
         for (Pair<Pair<String, Seq>, Pair<String, Seq>> pair : pairs) {
             final Pair<String, Seq> seq1 = pair.first;
@@ -872,36 +903,5 @@ public class TN93 extends Observable {
         ArrayList<Seq> a = read_seqs(sc);
         sc.close();
         return a;
-    }
-
-
-    private static ArrayList<Pair<Pair<String, Seq>, Pair<String, Seq>>> read_seq_pairs() {
-        // This supports reading pairs of sequences from stdin
-        // Expected format:
-        // seq1_name, seq1, seq2_name, seq2\n
-
-        Scanner sc = new Scanner(System.in);
-        ArrayList<Pair<Pair<String, Seq>, Pair<String, Seq>>> pairs = new ArrayList<>();
-
-        while(sc.hasNextLine()) {
-            String line = sc.nextLine().trim();
-            if(line.length() == 0) continue;
-            String[] fields = line.split(",");
-            if (fields.length != 4) {
-                System.err.println("Error: expected 4 fields per line, got " + fields.length);
-                System.exit(1);
-            }
-            String name1 = fields[0];
-            String seq1 = fields[1];
-            String name2 = fields[2];
-            String seq2 = fields[3];
-
-            pairs.add(new Pair<Pair<String, Seq>, Pair<String, Seq>>(
-                new Pair<String, Seq>(name1, new Seq(name1, seq1)),
-                new Pair<String, Seq>(name2, new Seq(name2, seq2))
-            ));
-        }
-        sc.close();
-        return pairs;
     }
 }
