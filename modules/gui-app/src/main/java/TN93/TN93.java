@@ -13,9 +13,6 @@ import java.util.concurrent.atomic.AtomicReference;
 //Parallelization
 import java.util.concurrent.*;
 
-
-
-
 import static java.lang.Math.log;
 
 public class TN93 extends Observable {
@@ -53,8 +50,15 @@ public class TN93 extends Observable {
     private boolean use_stdout = false;
     private boolean input_as_pairs = false;
     private boolean enumerate_sequences = false; 
+    
+    enum RESOLVE_METHOD {
+    	RESOLVE,
+    	AVERAGE,
+    	GAPMM,
+    	SKIP
+    }
 
-    public void setEdgeThreshold(float edgeThreshold) {
+	public void setEdgeThreshold(float edgeThreshold) {
         this.edgeThreshold = edgeThreshold;
     }
 
@@ -591,7 +595,13 @@ public class TN93 extends Observable {
         notifyObservers(percCompleted);
     }
 
-    private double tn93(Seq s1, Seq s2) {
+    /**
+     * Package visibility to allow the UDF direct access to this method.
+     * @param s1
+     * @param s2
+     * @return
+     */
+    double tn93(Seq s1, Seq s2) {
         double[][] nucl_pair_counts = countPairwiseNucl(s1, s2);
         double[] nucl_counts = getNuclCounts(nucl_pair_counts);
 
