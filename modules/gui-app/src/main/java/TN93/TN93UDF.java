@@ -37,8 +37,6 @@ public class TN93UDF extends GenericUDF {
             if (arguments[i].getCategory() != Category.PRIMITIVE) {
                 throw new UDFArgumentException("TN93 only takes primitive types, got " +arguments[i].getCategory() + ":" +  arguments[i].getTypeName());
             }
-            PrimitiveObjectInspector primitiveObject = (PrimitiveObjectInspector) arguments[i];
-            System.err.println("TN93UDF arg object type : " + primitiveObject.getClass().getName());
         }
         // make sure ambig fraction param is double
         PrimitiveObjectInspector ambigArgOI = (PrimitiveObjectInspector) arguments[3];
@@ -50,11 +48,9 @@ public class TN93UDF extends GenericUDF {
         //initialize TN93 with correct parameters.
         WritableConstantHiveDecimalObjectInspector ambigFractionArg = (WritableConstantHiveDecimalObjectInspector) arguments[3];
         tn93.setMaxAmbiguityFraction(ambigFractionArg.getWritableConstantValue().doubleValue());
-        System.err.println("arg3 ambigFractionArg value : " + ambigFractionArg.getWritableConstantValue().doubleValue());
         //TN93UDF arg object type : org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableConstantStringObjectInspector
         WritableConstantStringObjectInspector resolveArg = (WritableConstantStringObjectInspector) arguments[2];
         tn93.setAmbiguityHandling(resolveArg.getWritableConstantValue().toString());
-        System.err.println("arg2 resolveArg value : " + resolveArg.getWritableConstantValue().toString());
         
         //string converter for sequence string args.
         PrimitiveObjectInspector sequenceArgsOI = (PrimitiveObjectInspector) arguments[0];
