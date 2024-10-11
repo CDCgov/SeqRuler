@@ -179,6 +179,10 @@ public class TN93 extends Observable {
     	            	count=0;//reset counts
                 	}
             	} 
+                // process the last batch
+                if (pairs.size() > 0) {
+                    tn93_pairs(pairs);
+                }
         		return;
             } else if (use_stdin) {
                 seqs = read_fasta_stdin();

@@ -31,7 +31,7 @@ java -jar SeqRuler.jar
 ## Help
 
 ```bash
-Usage: SeqRuler [-egGhnprsSV] [-a=<ambiguityHandling>] [-c=<cores>]
+Usage: java -jar SeqRuler.jar [-egGhnprsSV] [-a=<ambiguityHandling>] [-c=<cores>]
                 [-d=<distanceMethod>] [-f=<max_ambiguity_fraction>] [-i=FILE]
                 [-o=FILE] [-t=<edgeThresholdString>]
   -a, --ambiguity, --ambiguities=<ambiguityHandling>
@@ -47,7 +47,7 @@ Usage: SeqRuler [-egGhnprsSV] [-a=<ambiguityHandling>] [-c=<cores>]
                                mapping. Default: false
   -f, --fraction=<max_ambiguity_fraction>
                              Maximum allowable fraction of ambiguities allowed for
-                               'resolve' mode. If exceeded, use 'average' mode.
+                               'resolve' mode. If exceeded, uses 'average' mode.
   -g, --ignore-terminal-gaps Ignore terminal gaps at beginning and end of sequences
                                when calculating distances. [SNP only] Default: true
   -G, --ignore-all-gaps      Ignore all gaps when calculating distances. [SNP only]
@@ -58,7 +58,8 @@ Usage: SeqRuler [-egGhnprsSV] [-a=<ambiguityHandling>] [-c=<cores>]
                                only] Default: true
   -o, --outFile=FILE         output file with distances
   -p, --pairs                read pairs of sequences from stdin, calculate distance
-                               for each pair. format "name1, seq1, name2, seq2\n"
+                               for each pair. format "name1, seq1, name2, seq2\n".
+                               Do not include a header row
   -r, --run-server           run jetty server
   -s, --stdin                read fasta from stdin. Alternative to reading from a
                                file (-i)

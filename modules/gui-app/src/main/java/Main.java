@@ -29,7 +29,7 @@ public class Main implements Runnable{
     private boolean use_stdin;
     @CommandLine.Option(names={"-S", "--stdout"}, description="write distances to stdout. Alternative to writing to a file (-o)", defaultValue = "false")
     private boolean use_stdout;
-    @CommandLine.Option(names={"-p", "--pairs"}, description="read pairs of sequences from stdin, calculate distance for each pair. format \"name1, seq1, name2, seq2\\n\"", defaultValue = "false")
+    @CommandLine.Option(names={"-p", "--pairs"}, description="read pairs of sequences from stdin, calculate distance for each pair. format \"name1, seq1, name2, seq2\\n\". Do not include a header row", defaultValue = "false")
     private boolean input_as_pairs;
     @CommandLine.Option(names={"-d", "--distance-method"},
             description="distance metric to use. One of [TN93, SNP]. Default: TN93", defaultValue = "TN93")
@@ -43,7 +43,7 @@ public class Main implements Runnable{
             description="How to handle ambiguous nucleotides. One of [resolve, average, gapmm, skip]", defaultValue = "resolve")
     private String ambiguityHandling;
     @CommandLine.Option(names={"-f", "--fraction"},
-            description="Maximum allowable fraction of ambiguities allowed for 'resolve' mode. If exceeded, use 'average' mode.", defaultValue = "1.0")
+            description="Maximum allowable fraction of ambiguities allowed for 'resolve' mode. If exceeded, uses 'average' mode.", defaultValue = "1.0")
     private float max_ambiguity_fraction;
     @CommandLine.Option(names={"-c", "--cores"},
             description="Number of cores to use for parallel processing. Default: 1", defaultValue = "1")
