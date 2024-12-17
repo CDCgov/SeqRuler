@@ -16,7 +16,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
-@CommandLine.Command(name = "SeqRuler", mixinStandardHelpOptions = true, version = "4.4")
+@CommandLine.Command(name = "SeqRuler", mixinStandardHelpOptions = true, version = "4.4.4")
 public class Main implements Runnable{
     @CommandLine.Option(names={"-i", "--inFile"}, description="input file with sequences",
             paramLabel = "FILE")
